@@ -164,8 +164,7 @@ resumen del enunciado y se revisan cuando llegue la especificación (P07).
 | 5 · Cierre (jue 19) | [#9](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/9) README y diagrama<br>[#10](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/10) póster<br>[#11](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/11) bitácora y sustentación | — | — | — |
 
 La base común (etapa 1) va primero porque las demás áreas programan sobre ella. Mientras
-tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)). Las
-tareas de Manuel quedan sin asignar en GitHub hasta que acepte la invitación al repo.
+tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)).
 
 ## Cómo continuar
 
