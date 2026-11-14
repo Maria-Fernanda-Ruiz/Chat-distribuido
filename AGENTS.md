@@ -8,8 +8,10 @@ sola sala global, `#general`. El requerimiento se trabaja con **SPDD**.
 
 El 2026-11-13 Maria Fernanda montó el repo con la base SPDD: el enunciado (PDF y
 transcripción), la historia CD-001 con HU1–HU12, la plantilla del canvas REASONS y el
-README con D01–D02 y los pendientes P01–P14. **No hay código de la aplicación.** Lo
-siguiente es que el equipo revise la historia y cierre los pendientes (paso 2).
+README con D01–D02 y los pendientes P01–P14. El 2026-11-14 Javier, como PM, cerró la
+ronda 1 (D03–D09): reparto por flujo del mensaje, FastAPI con httpx, SQLite, cliente web,
+entrega el jueves 19 de noviembre, y 23 issues en 5 milestones con responsable cada uno.
+**No hay código de la aplicación.**
 
 Leer en este orden:
 
@@ -68,7 +70,8 @@ Leer en este orden:
 
 ## Próximos pasos, en orden
 
-1. Revisar la historia CD-001 en equipo y cerrar P01–P14 (paso 2).
+1. Revisar la historia CD-001 y la tabla «Tareas y responsables» del README; cerrar los
+   pendientes que quedan (paso 2).
 2. Conseguir la especificación OpenAPI, los ejemplos JSON y el script de conformidad
    (P07) y guardarlos en el repo.
 3. Escribir el análisis en `spdd/analysis/` (paso 3).

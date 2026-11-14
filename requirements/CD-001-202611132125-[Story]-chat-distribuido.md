@@ -4,7 +4,7 @@
 |---|---|
 | ID | CD-001 |
 | Tipo | Historia (paso 1 de SPDD) |
-| Estado | Borrador, sin revisar por el equipo; pendientes P01–P14 abiertos |
+| Estado | Borrador; ronda 1 de decisiones cerrada (D03–D09), pendientes abiertos en el README |
 | Fecha | 2026-11-13 |
 | Fuente | [Enunciado «Proyecto final: chat distribuido entre grupos»](enunciado/enunciado.md), Sistemas Distribuidos, UIS ([PDF](enunciado/proyecto_final_v2.pdf)) |
 
@@ -53,9 +53,8 @@ sobrevivan a un reinicio (requisitos 2 y 3).
 
 - Se pueden crear usuarios del grupo; se escriben `usuario@gN`, por ejemplo `ana@g3`.
 - Un usuario puede enviar y leer mensajes de `#general`.
-- Usuarios e historial sobreviven a `docker compose restart`. El almacenamiento (SQLite en
-  volumen, Redis con persistencia o PostgreSQL) está por decidir
-  ([P04](../README.md#decisiones-pendientes)).
+- Usuarios e historial sobreviven a `docker compose restart`. El almacenamiento es SQLite
+  en un volumen ([D06](../README.md#log-de-decisiones)).
 - Punto de control de la etapa 2: dos usuarios del grupo conversan localmente y el
   historial sobrevive a un reinicio.
 
@@ -139,8 +138,8 @@ grupos (requisito 10).
 
 - El cliente solo habla con nuestro servidor; esa API es libre.
 - Distingue visualmente a los usuarios de otros grupos.
-- Línea de comandos o página web mínima: por decidir
-  ([P05](../README.md#decisiones-pendientes)).
+- Es una página web mínima servida por el mismo servidor
+  ([D07](../README.md#log-de-decisiones)).
 
 ### HU10 · Logs de eventos
 
