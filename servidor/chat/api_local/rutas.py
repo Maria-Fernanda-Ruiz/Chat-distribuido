@@ -13,11 +13,13 @@ y el cliente web mínimo servido por este mismo FastAPI (#23, D07).
 Antes de programar: el canvas CD-003, sobre los contratos de CD-002.
 """
 
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated, Any
+
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
 from chat.contexto import ContextoDep
-from chat.modelo import direccion, es_nombre_valido
+from chat.modelo import LAMPORT_MAXIMO, direccion, es_nombre_valido
 
 router = APIRouter(prefix="/api", tags=["API local"])
 
@@ -67,3 +69,40 @@ def crear_usuario(datos: UsuarioNuevo, ctx: ContextoDep) -> UsuarioSalida:
 def listar_usuarios(ctx: ContextoDep) -> list[UsuarioSalida]:
     """Los usuarios del grupo, en orden alfabético."""
     return [_usuario_salida(nombre, ctx.config.grupo) for nombre in ctx.almacen.listar_usuarios()]
+
+
+# ---------------------------------------------------------------- historial (#22)
+
+
+@router.get("/mensajes")
+def leer_historial(
+    ctx: ContextoDep,
+    desde_lamport: Annotated[str | None, Query()] = None,
+) -> list[dict[str, Any]]:
+    """El historial de #general en orden lógico, (lamport, origin, id), propios y de otros
+    grupos. Con `desde_lamport=N`, solo los mensajes con marca mayor que N (D19).
+
+    `sent_at` viaja en la respuesta para que el cliente lo muestre, pero nunca se usa
+    para ordenar."""
+    if desde_lamport is None:
+        mensajes = ctx.almacen.listar_historial()
+    else:
+        mensajes = ctx.almacen.listar_historial_desde_lamport(_lamport_valido(desde_lamport))
+    return [m.a_json() for m in mensajes]
+
+
+def _lamport_valido(texto: str) -> int:
+    """`desde_lamport` debe ser un entero entre 0 y el máximo del protocolo; si no, 422.
+
+    Se recibe como texto y se valida aquí para responder el error en español (canvas
+    CD-003, enfoque 2) en vez de la lista en inglés que arma FastAPI."""
+    try:
+        valor = int(texto)
+    except ValueError:
+        valor = -1
+    if not 0 <= valor <= LAMPORT_MAXIMO:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"desde_lamport «{texto}» no es válido: usa un entero mayor o igual a 0",
+        )
+    return valor

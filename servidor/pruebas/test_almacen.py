@@ -115,6 +115,15 @@ def test_con_limite_devuelve_los_ultimos_en_orden(almacen):
     assert [m.lamport for m in almacen.listar_historial(limite=3)] == [8, 9, 10]
 
 
+def test_historial_desde_lamport_devuelve_solo_las_marcas_mayores_en_orden(almacen):
+    for m in [mensaje("c", 5, "g5"), mensaje("a", 2, "g1"), mensaje("b", 5, "g1"),
+              mensaje("d", 3, "g9")]:
+        almacen.guardar_mensaje_si_no_existe(m)
+    assert [m.id for m in almacen.listar_historial_desde_lamport(3)] == ["b", "c"]
+    assert [m.id for m in almacen.listar_historial_desde_lamport(0)] == ["a", "d", "b", "c"]
+    assert almacen.listar_historial_desde_lamport(5) == []
+
+
 def test_llegados_despues_de_usa_el_orden_de_llegada_y_no_el_lamport(almacen):
     almacen.guardar_mensaje_si_no_existe(mensaje("viejo", 50))
     (cursor, _), = almacen.listar_llegados_despues_de(0)
