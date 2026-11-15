@@ -1,3 +1,4 @@
+
 """Arma la aplicación: incluye las rutas de cada área y lanza las tareas de fondo.
 
 El ciclo de vida sigue el análisis (sección 12). Al arrancar se abre SQLite, se crea el
@@ -20,7 +21,7 @@ from chat.api_local import rutas as rutas_api_local
 from chat.configuracion import Configuracion
 from chat.contexto import Contexto
 from chat.eventos import Evento, registrar
-from chat.federacion import rutas as rutas_federacion
+from chat.federacion import envio, rutas as rutas_federacion
 from chat.presencia import rutas as rutas_presencia
 
 TareaDeFondo = Callable[[Contexto], Awaitable[None]]
@@ -32,7 +33,7 @@ TAREAS_DE_FONDO: list[TareaDeFondo] = [
     # registro.mantener_registro,        # presencia, #16
     # historial.recuperar_al_arrancar,   # presencia, #18
     # heartbeat.vigilar_central,         # presencia, #17
-    # envio.enviar_pendientes,           # federación, #14
+    envio.enviar_pendientes,             # federación, #14
 ]
 
 # Si una tarea falla de forma inesperada, se reinicia después de esta espera (Norms).
