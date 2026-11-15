@@ -15,7 +15,7 @@ registrada en este README.
 > **Fase actual: análisis, canvas de la estructura y código de la etapa 1 (pasos 3 a 5
 > de SPDD).** Está la [historia](requirements/) con HU1–HU12, el
 > [análisis](spdd/analysis/) del protocolo (provisional hasta que llegue la
-> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 24 decisiones
+> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 26 decisiones
 > tomadas y 5 pendientes. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**. El código de la etapa 1 (#3–#6) está en PR.
@@ -147,6 +147,8 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D22 | **El texto del mensaje va de 1 a 1 000 caracteres;** vacío o solo espacios, o más de 1 000 → 422 | Solo no vacío; sin límites; 2 000 (Discord) o 4 000 (Telegram) | Evita mensajes en blanco en `#general` y textos enormes que viajan a todos los grupos, sin limitar un mensaje normal de chat | R | 3 |
 | D23 | **El cliente web se abre en `/`** | `/cliente` | Es lo más cómodo en la demo: se abre la URL del servidor y aparece el chat | S | 3 |
 | D24 | **`tick(tx)` y `recibir(valor, tx)` reutilizan la transacción SQLite recibida.** Si no reciben una transacción, pueden abrir una propia mediante `Almacen`. Cierra P16 | Abrir siempre una transacción propia, incluso cuando ya existe una abierta | Evita transacciones anidadas y permite que el mensaje y el reloj compartan la misma confirmación o rollback | S | 4 |
+| D25 | **En el cliente web, el usuario se elige o se crea en la misma pantalla del chat:** arriba, una lista con los usuarios del grupo y un campo para crear uno nuevo | Una pantalla de entrada aparte | Es lo más simple y lo más rápido en la demo, con menos código que explicar | S | 4 |
+| D26 | **Cada mensaje del cliente muestra su número de Lamport junto a la hora**, por ejemplo `#12 · 3:15 p. m.` | Mostrar solo la hora | En la demo y en el póster se ve por qué los mensajes salen en ese orden, y se puede mostrar la limitación de D19 | S | 4 |
 
 ## Decisiones pendientes
 
