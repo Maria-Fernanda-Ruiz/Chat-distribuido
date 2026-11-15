@@ -172,6 +172,77 @@ resumen del enunciado y se revisan cuando llegue la especificación (P07).
 La base común (etapa 1) va primero porque las demás áreas programan sobre ella. Mientras
 tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)).
 
+## Cómo levantarlo
+
+Solo hace falta Docker con Compose. Todo corre en contenedores (regla 8 de
+[`AGENTS.md`](AGENTS.md)).
+
+```bash
+cp .env.example .env          # llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+docker compose up --build     # servidor en http://localhost:8000
+curl localhost:8000/fed/health
+```
+
+Si falta una variable obligatoria o un valor no es válido, el servidor no arranca y el
+log dice cuál es. Cada variable está explicada en [`.env.example`](.env.example). Las
+opcionales vacías toman los valores de [D10](#log-de-decisiones). Los datos (SQLite)
+viven en el volumen `datos` y sobreviven a `docker compose restart`. `docker compose down
+-v` los borra.
+
+Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
+
+```bash
+docker compose -f docker-compose.local.yml up --build              # gNa en :8001 y gNb en :8002
+docker compose -f docker-compose.local.yml run --rm --build pruebas # todas las pruebas (pytest)
+```
+
+## Código
+
+El servidor está en [`servidor/chat/`](servidor/chat/). La estructura y los contratos
+entre módulos están en el [canvas CD-002](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md).
+Cada área programa en su carpeta, donde un archivo de partida explica qué va ahí:
+
+| Carpeta | Qué hay | Responsable | Issues |
+|---|---|---|---|
+| [`chat/api_local/`](servidor/chat/api_local/) | API local y cliente web | Maria Fernanda | #20–#23 |
+| [`chat/federacion/`](servidor/chat/federacion/) | Reloj de Lamport, `POST /fed/messages`, envío con reintentos | Karen | #12–#14 |
+| [`chat/presencia/`](servidor/chat/presencia/) | `GET /fed/health`, registro, heartbeat, recuperación de historial | Manuel | #15–#18 |
+| El resto de [`chat/`](servidor/chat/) | Configuración, contexto, arranque, almacén, modelo y eventos | Javier | #3–#6 |
+
+Una tarea de fondo nueva se agrega a `TAREAS_DE_FONDO` en
+[`principal.py`](servidor/chat/principal.py). Lo que comparten las áreas pasa por
+[`Contexto`](servidor/chat/contexto.py); las áreas no se importan entre sí.
+
+### Cómo registrar eventos
+
+Los logs son la base del experimento y de la demo, así que todas las áreas registran
+sus eventos con la misma función de [`eventos.py`](servidor/chat/eventos.py):
+
+```python
+from chat.eventos import Evento, registrar
+
+registrar(Evento.REINTENTO, mensaje, intento=2, espera_s=1.7, causa="timeout")
+```
+
+```text
+2026-11-14T19:40:05.210Z g3 REINTENTO id=6f1c2a9e-… lamport=42 origin=g3 from=ana@g3 intento=2 espera_s=1.7 causa=timeout
+```
+
+- Si se pasa el mensaje, la línea lleva su `id`, `lamport`, `origin` y `from`; después
+  van los detalles en el orden en que se escriben.
+- Un valor con espacios sale entre comillas, y un detalle `None` no sale.
+- El cuerpo del mensaje nunca va al log.
+- Los eventos y los campos de cada uno están en el
+  [análisis, sección 10](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#10-eventos-del-log).
+  Para agregar uno, primero se agrega al análisis y al canvas.
+
+Los mensajes del protocolo se leen y se crean con [`Mensaje`](servidor/chat/modelo.py):
+
+- `Mensaje.model_validate(json)` acepta campos desconocidos.
+- `Mensaje.nuevo(usuario=…, grupo=…, lamport=…, body=…)` crea uno nuestro con un `id`
+  nuevo.
+- `mensaje.a_json()` lo deja listo para enviar, con `from`.
+
 ## Cómo continuar
 
 Las instrucciones para cualquier persona o agente están en [`AGENTS.md`](AGENTS.md).
