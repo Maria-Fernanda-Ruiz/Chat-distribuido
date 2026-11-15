@@ -1,0 +1,32 @@
+# Servidor del grupo: lo que se entrega (requisito 1 del enunciado).
+#
+#   cp .env.example .env    # y llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+#   docker compose up --build
+#
+# Las variables vacías toman el valor por defecto del servidor (D10). Las pruebas y las
+# dos instancias locales están en docker-compose.local.yml, que no se entrega.
+services:
+  servidor:
+    build:
+      context: ./servidor
+      target: servidor
+    environment:
+      GRUPO: ${GRUPO:-}
+      URL_PUBLICA: ${URL_PUBLICA:-}
+      URL_CENTRAL: ${URL_CENTRAL:-}
+      HEARTBEAT_INTERVALO_S: ${HEARTBEAT_INTERVALO_S:-}
+      HEARTBEAT_FALLOS_PARA_CAIDO: ${HEARTBEAT_FALLOS_PARA_CAIDO:-}
+      REGISTRO_INTERVALO_S: ${REGISTRO_INTERVALO_S:-}
+      BACKOFF_BASE_S: ${BACKOFF_BASE_S:-}
+      BACKOFF_MAX_S: ${BACKOFF_MAX_S:-}
+      HTTP_TIMEOUT_S: ${HTTP_TIMEOUT_S:-}
+      LOG_ACCESOS: ${LOG_ACCESOS:-}
+    ports:
+      - "${PUERTO_HOST:-8000}:8000"
+    volumes:
+      - datos:/datos
+    stop_grace_period: 5s
+
+volumes:
+  # SQLite vive aquí: usuarios, historial, reloj y pendientes sobreviven a un reinicio (D06, D11).
+  datos:
