@@ -12,6 +12,7 @@ import sys
 import uvicorn
 
 from chat.configuracion import ErrorDeConfiguracion, cargar_configuracion
+from chat.eventos import configurar_logging
 from chat.principal import crear_app
 
 
@@ -21,6 +22,7 @@ def main() -> int:
     except ErrorDeConfiguracion as error:
         print(error.explicacion(), file=sys.stderr)
         return 2
+    configurar_logging(config.grupo)
     uvicorn.run(
         crear_app(config),
         host="0.0.0.0",

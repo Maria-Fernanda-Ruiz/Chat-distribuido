@@ -213,6 +213,36 @@ Una tarea de fondo nueva se agrega a `TAREAS_DE_FONDO` en
 [`principal.py`](servidor/chat/principal.py). Lo que comparten las áreas pasa por
 [`Contexto`](servidor/chat/contexto.py); las áreas no se importan entre sí.
 
+### Cómo registrar eventos
+
+Los logs son la base del experimento y de la demo, así que todas las áreas registran
+sus eventos con la misma función de [`eventos.py`](servidor/chat/eventos.py):
+
+```python
+from chat.eventos import Evento, registrar
+
+registrar(Evento.REINTENTO, mensaje, intento=2, espera_s=1.7, causa="timeout")
+```
+
+```text
+2026-11-14T19:40:05.210Z g3 REINTENTO id=6f1c2a9e-… lamport=42 origin=g3 from=ana@g3 intento=2 espera_s=1.7 causa=timeout
+```
+
+- Si se pasa el mensaje, la línea lleva su `id`, `lamport`, `origin` y `from`; después
+  van los detalles en el orden en que se escriben.
+- Un valor con espacios sale entre comillas, y un detalle `None` no sale.
+- El cuerpo del mensaje nunca va al log.
+- Los eventos y los campos de cada uno están en el
+  [análisis, sección 10](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#10-eventos-del-log).
+  Para agregar uno, primero se agrega al análisis y al canvas.
+
+Los mensajes del protocolo se leen y se crean con [`Mensaje`](servidor/chat/modelo.py):
+
+- `Mensaje.model_validate(json)` acepta campos desconocidos.
+- `Mensaje.nuevo(usuario=…, grupo=…, lamport=…, body=…)` crea uno nuestro con un `id`
+  nuevo.
+- `mensaje.a_json()` lo deja listo para enviar, con `from`.
+
 ## Cómo continuar
 
 Las instrucciones para cualquier persona o agente están en [`AGENTS.md`](AGENTS.md).
