@@ -172,6 +172,30 @@ resumen del enunciado y se revisan cuando llegue la especificación (P07).
 La base común (etapa 1) va primero porque las demás áreas programan sobre ella. Mientras
 tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)).
 
+## Cómo levantarlo
+
+Solo hace falta Docker con Compose. Todo corre en contenedores (regla 8 de
+[`AGENTS.md`](AGENTS.md)).
+
+```bash
+cp .env.example .env          # llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+docker compose up --build     # servidor en http://localhost:8000
+curl localhost:8000/fed/health
+```
+
+Si falta una variable obligatoria o un valor no es válido, el servidor no arranca y el
+log dice cuál es. Cada variable está explicada en [`.env.example`](.env.example). Las
+opcionales vacías toman los valores de [D10](#log-de-decisiones). Los datos (SQLite)
+viven en el volumen `datos` y sobreviven a `docker compose restart`. `docker compose down
+-v` los borra.
+
+Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
+
+```bash
+docker compose -f docker-compose.local.yml up --build              # gNa en :8001 y gNb en :8002
+docker compose -f docker-compose.local.yml run --rm --build pruebas # todas las pruebas (pytest)
+```
+
 ## Código
 
 El servidor está en [`servidor/chat/`](servidor/chat/). La estructura y los contratos
