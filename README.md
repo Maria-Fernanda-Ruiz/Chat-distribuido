@@ -172,6 +172,23 @@ resumen del enunciado y se revisan cuando llegue la especificación (P07).
 La base común (etapa 1) va primero porque las demás áreas programan sobre ella. Mientras
 tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)).
 
+## Código
+
+El servidor está en [`servidor/chat/`](servidor/chat/). La estructura y los contratos
+entre módulos están en el [canvas CD-002](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md).
+Cada área programa en su carpeta, donde un archivo de partida explica qué va ahí:
+
+| Carpeta | Qué hay | Responsable | Issues |
+|---|---|---|---|
+| [`chat/api_local/`](servidor/chat/api_local/) | API local y cliente web | Maria Fernanda | #20–#23 |
+| [`chat/federacion/`](servidor/chat/federacion/) | Reloj de Lamport, `POST /fed/messages`, envío con reintentos | Karen | #12–#14 |
+| [`chat/presencia/`](servidor/chat/presencia/) | `GET /fed/health`, registro, heartbeat, recuperación de historial | Manuel | #15–#18 |
+| El resto de [`chat/`](servidor/chat/) | Configuración, contexto, arranque, almacén, modelo y eventos | Javier | #3–#6 |
+
+Una tarea de fondo nueva se agrega a `TAREAS_DE_FONDO` en
+[`principal.py`](servidor/chat/principal.py). Lo que comparten las áreas pasa por
+[`Contexto`](servidor/chat/contexto.py); las áreas no se importan entre sí.
+
 ## Cómo continuar
 
 Las instrucciones para cualquier persona o agente están en [`AGENTS.md`](AGENTS.md).

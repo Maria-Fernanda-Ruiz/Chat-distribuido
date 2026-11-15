@@ -1,0 +1,3 @@
+# Solo para la etapa de pruebas del Dockerfile; no entra en la imagen del servidor.
+-r requirements.txt
+pytest==9.2.0
