@@ -82,6 +82,7 @@ def crear_app(
 
     app = FastAPI(title=f"Chat distribuido · {config.grupo}", lifespan=ciclo_de_vida)
     app.include_router(rutas_api_local.router)
+    app.include_router(rutas_api_local.router_cliente)
     app.include_router(rutas_federacion.router)
     app.include_router(rutas_presencia.router)
     return app

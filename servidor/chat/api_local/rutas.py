@@ -14,9 +14,11 @@ Antes de programar: el canvas CD-003, sobre los contratos de CD-002.
 """
 
 import time
+from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from chat.contexto import ContextoDep
@@ -25,6 +27,8 @@ from chat.federacion.reloj import tick
 from chat.modelo import LAMPORT_MAXIMO, Mensaje, direccion, es_nombre_valido
 
 router = APIRouter(prefix="/api", tags=["API local"])
+# El cliente web va sin el prefijo /api, en la raíz (D23).
+router_cliente = APIRouter(tags=["Cliente web"])
 
 # D22: el texto de un mensaje va de 1 a 1 000 caracteres.
 LARGO_MAXIMO_BODY = 1000
@@ -160,3 +164,14 @@ def _lamport_valido(texto: str) -> int:
             detail=f"desde_lamport «{texto}» no es válido: usa un entero mayor o igual a 0",
         )
     return valor
+
+
+# ---------------------------------------------------------------- cliente web (#23)
+
+INDEX_HTML = Path(__file__).parent / "estatico" / "index.html"
+
+
+@router_cliente.get("/", include_in_schema=False)
+def cliente_web() -> FileResponse:
+    """El cliente web mínimo: un solo archivo con HTML, CSS y JS, sin librerías (D07, D23)."""
+    return FileResponse(INDEX_HTML, media_type="text/html")
