@@ -15,8 +15,8 @@ registrada en este README.
 > **Fase actual: análisis, canvas de la estructura y código de la etapa 1 (pasos 3 a 5
 > de SPDD).** Está la [historia](requirements/) con HU1–HU12, el
 > [análisis](spdd/analysis/) del protocolo (provisional hasta que llegue la
-> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 23 decisiones
-> tomadas y 6 pendientes. El trabajo está repartido en
+> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 24 decisiones
+> tomadas y 5 pendientes. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**. El código de la etapa 1 (#3–#6) está en PR.
 
@@ -160,7 +160,7 @@ pendiente.
 | P07 | ¿Dónde están la especificación OpenAPI, los ejemplos JSON y el script de conformidad? | Al 2026-11-14 no se han publicado. Javier pregunta al profesor y en el foro ([#1](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/1)); mientras tanto, los issues del protocolo llevan la etiqueta `protocolo-provisional` | Análisis (paso 3) y todo el protocolo |
 | P08 | ¿Qué es el «modo alternativo» si el central no puede llamarnos? | Leerlo en la especificación cuando llegue (P07) | HU12 |
 | P12 | ¿Cómo será alcanzable nuestra URL pública por el central (red de la sala, túnel)? | Depende de la red de la sesión y del modo alternativo (P08) | HU1, HU3, HU12 |
-| P16 | La API local mueve el reloj, guarda el mensaje y lo encola en una sola transacción (CD-003, salvaguarda 3). ¿La función `tick()` de [#12](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/12) recibe la `Transaccion` abierta? | Que el reloj ofrezca `tick(tx)` además de la versión que abre su propia transacción. Lo acuerdan Karen y Maria Fernanda | [#21](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/21) |
+| D25 | **`tick(tx)` y `recibir(valor, tx)` reutilizan la transacción SQLite recibida.** Si no reciben una transacción, pueden abrir una propia mediante `Almacen`. Cierra P16 | Abrir siempre una transacción propia, incluso cuando ya existe una abierta | Evita transacciones anidadas y permite que el mensaje y el reloj compartan la misma confirmación o rollback | S | 4 |
 
 ## Tareas y responsables
 
