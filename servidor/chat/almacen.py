@@ -201,6 +201,20 @@ class Almacen:
         with closing(self._conectar()) as con:
             return [_a_mensaje(fila) for fila in con.execute(consulta, parametros)]
 
+    def listar_historial_desde_lamport(self, lamport: int) -> list[Mensaje]:
+        """Los mensajes con marca MAYOR que `lamport`, en orden lógico (CD-003, D19).
+
+        Lo usa el cliente para pedir solo lo nuevo. Ojo, a propósito: un mensaje
+        concurrente que llega tarde con una marca menor o igual a `lamport` no sale aquí.
+        Para no perder ninguno está `listar_llegados_despues_de`."""
+        with closing(self._conectar()) as con:
+            filas = con.execute(
+                f"SELECT {_COLUMNAS_MENSAJE} FROM mensajes m"
+                f" WHERE m.lamport > ? ORDER BY {_ORDEN_LOGICO}",
+                (lamport,),
+            )
+            return [_a_mensaje(fila) for fila in filas]
+
     def listar_llegados_despues_de(self, secuencia: int) -> list[tuple[int, Mensaje]]:
         """Lo que llegó a este servidor después de `secuencia`, en orden de llegada.
         Para que un cliente pida solo lo nuevo; luego lo muestra en orden lógico."""
