@@ -13,15 +13,21 @@ y el cliente web mínimo servido por este mismo FastAPI (#23, D07).
 Antes de programar: el canvas CD-003, sobre los contratos de CD-002.
 """
 
+import time
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
 from chat.contexto import ContextoDep
-from chat.modelo import LAMPORT_MAXIMO, direccion, es_nombre_valido
+from chat.eventos import Evento, registrar
+from chat.federacion.reloj import tick
+from chat.modelo import LAMPORT_MAXIMO, Mensaje, direccion, es_nombre_valido
 
 router = APIRouter(prefix="/api", tags=["API local"])
+
+# D22: el texto de un mensaje va de 1 a 1 000 caracteres.
+LARGO_MAXIMO_BODY = 1000
 
 
 # ---------------------------------------------------------------- usuarios (#20)
@@ -69,6 +75,54 @@ def crear_usuario(datos: UsuarioNuevo, ctx: ContextoDep) -> UsuarioSalida:
 def listar_usuarios(ctx: ContextoDep) -> list[UsuarioSalida]:
     """Los usuarios del grupo, en orden alfabético."""
     return [_usuario_salida(nombre, ctx.config.grupo) for nombre in ctx.almacen.listar_usuarios()]
+
+
+# ---------------------------------------------------------------- enviar (#21)
+
+
+class MensajeNuevo(BaseModel):
+    """Lo que manda el cliente para escribir en #general: quién y qué.
+
+    El `id`, el `origin`, el `lamport` y el `sent_at` no se aceptan: los pone el
+    servidor (salvaguarda 1). Si el cliente los manda, se ignoran."""
+
+    usuario: str
+    body: str
+
+
+@router.post("/mensajes", status_code=status.HTTP_201_CREATED)
+def enviar_mensaje(datos: MensajeNuevo, ctx: ContextoDep) -> dict[str, Any]:
+    """Escribe un mensaje en #general. 404 si el usuario no existe (D21) y 422 si el
+    texto está vacío, tiene solo espacios o pasa de 1 000 caracteres (D22).
+
+    Subir el reloj, guardar el mensaje y dejarlo en pendientes pasan en una sola
+    transacción (salvaguarda 3): si algo falla, no queda ninguna de las tres cosas. No
+    se llama al central: el envío lo hace la tarea de fondo de federación (#14)."""
+    if not ctx.almacen.existe_usuario(datos.usuario):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"El usuario «{datos.usuario}» no existe en {ctx.config.grupo}: "
+                "créalo antes de escribir"
+            ),
+        )
+    if not datos.body.strip() or len(datos.body) > LARGO_MAXIMO_BODY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"El mensaje no es válido: escribe de 1 a {LARGO_MAXIMO_BODY} caracteres "
+                f"(tiene {len(datos.body)}) y que no sean solo espacios"
+            ),
+        )
+    with ctx.almacen.transaccion() as tx:
+        mensaje = Mensaje.nuevo(
+            usuario=datos.usuario, grupo=ctx.config.grupo, lamport=tick(tx), body=datos.body
+        )
+        tx.guardar_mensaje_si_no_existe(mensaje)
+        tx.encolar_pendiente(mensaje.id, proximo_intento=time.time())
+    # Se registra después de confirmar la transacción, para no anotar algo que se deshizo.
+    registrar(Evento.ENCOLADO, mensaje)
+    return mensaje.a_json()
 
 
 # ---------------------------------------------------------------- historial (#22)

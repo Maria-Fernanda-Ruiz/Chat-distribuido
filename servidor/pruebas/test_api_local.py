@@ -1,8 +1,13 @@
 """Pruebas de la API local (canvas CD-003)."""
 
+import logging
+import time
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 
+from chat.almacen import Transaccion
 from chat.modelo import Mensaje
 from chat.principal import crear_app
 
@@ -132,3 +137,110 @@ def test_el_historial_sobrevive_a_un_reinicio(config):
         guardar(cliente, "m1", 1, "g1")
     with TestClient(crear_app(config, tareas=[])) as cliente:
         assert ids(cliente.get("/api/mensajes")) == ["m1"]
+
+
+# ---------------------------------------------------------------- enviar (#21)
+
+
+def enviar(cliente, body: str = "hola", usuario: str = "ana"):
+    return cliente.post("/api/mensajes", json={"usuario": usuario, "body": body})
+
+
+@pytest.fixture
+def con_ana(cliente):
+    cliente.post("/api/usuarios", json={"nombre": "ana"})
+    return cliente
+
+
+def test_enviar_responde_201_con_el_mensaje_del_protocolo(con_ana):
+    respuesta = enviar(con_ana, "hola #general")
+    assert respuesta.status_code == 201
+    m = respuesta.json()
+    assert set(m) == {"id", "from", "origin", "lamport", "sent_at", "body"}
+    assert uuid.UUID(m["id"])
+    assert m["from"] == "ana@gprueba" and m["origin"] == "gprueba"
+    assert m["lamport"] == 1 and m["body"] == "hola #general"
+    assert m["sent_at"].endswith("Z")
+
+
+def test_cada_envio_tiene_id_nuevo_y_lamport_mayor(con_ana):
+    mensajes = [enviar(con_ana, f"m{i}").json() for i in range(3)]
+    assert len({m["id"] for m in mensajes}) == 3
+    assert [m["lamport"] for m in mensajes] == [1, 2, 3]
+
+
+def test_el_lamport_sigue_despues_de_un_mensaje_recibido(con_ana):
+    # Si llegó uno de otro grupo con marca 41 y el reloj quedó en 42, el nuestro sale con 43.
+    with con_ana.app.state.contexto.almacen.transaccion() as tx:
+        tx.fijar_reloj(42)
+    assert enviar(con_ana).json()["lamport"] == 43
+
+
+def test_el_servidor_ignora_id_lamport_origin_y_sent_at_del_cliente(con_ana):
+    respuesta = con_ana.post("/api/mensajes", json={
+        "usuario": "ana", "body": "hola", "id": "falso", "lamport": 999,
+        "origin": "g9", "sent_at": "2000-01-01T00:00:00Z"})
+    m = respuesta.json()
+    assert m["id"] != "falso" and m["lamport"] == 1
+    assert m["origin"] == "gprueba" and m["sent_at"] != "2000-01-01T00:00:00Z"
+
+
+def test_usuario_que_no_existe_responde_404(cliente):
+    respuesta = enviar(cliente, usuario="nadie")
+    assert respuesta.status_code == 404
+    assert respuesta.json()["detail"] == "El usuario «nadie» no existe en gprueba: créalo antes de escribir"
+    assert cliente.get("/api/mensajes").json() == []
+
+
+@pytest.mark.parametrize("body", ["", "   ", "\n\t ", "x" * 1001],
+                         ids=["vacio", "espacios", "blancos", "1001-caracteres"])
+def test_body_invalido_responde_422_y_no_guarda_nada(con_ana, body):
+    respuesta = enviar(con_ana, body)
+    assert respuesta.status_code == 422
+    assert "no es válido" in respuesta.json()["detail"]
+    almacen = con_ana.app.state.contexto.almacen
+    assert almacen.contar_mensajes() == 0 and almacen.leer_reloj() == 0
+
+
+def test_body_de_1000_caracteres_es_valido(con_ana):
+    assert enviar(con_ana, "x" * 1000).status_code == 201
+
+
+def test_el_mensaje_queda_en_el_historial_en_pendientes_y_en_el_reloj(con_ana):
+    m = enviar(con_ana).json()
+    almacen = con_ana.app.state.contexto.almacen
+    assert con_ana.get("/api/mensajes").json() == [m]
+    assert almacen.contar_pendientes() == 1
+    (pendiente,) = almacen.pendientes_listos(ahora=time.time())
+    assert pendiente.mensaje.id == m["id"]
+    assert almacen.leer_reloj() == m["lamport"]
+
+
+def test_si_falla_al_encolar_no_queda_nada(con_ana, monkeypatch):
+    """Salvaguarda 3: reloj, mensaje y pendiente van juntos o no va ninguno."""
+    def falla(*_args, **_kwargs):
+        raise RuntimeError("se cae al encolar")
+
+    monkeypatch.setattr(Transaccion, "encolar_pendiente", falla)
+    with pytest.raises(RuntimeError):
+        enviar(con_ana)
+    almacen = con_ana.app.state.contexto.almacen
+    assert almacen.leer_reloj() == 0
+    assert almacen.contar_mensajes() == 0
+    assert almacen.contar_pendientes() == 0
+
+
+def test_enviar_registra_el_evento_encolado(con_ana, caplog):
+    with caplog.at_level(logging.INFO, logger="chat.eventos"):
+        m = enviar(con_ana).json()
+    (linea,) = [r.getMessage() for r in caplog.records if r.getMessage().startswith("ENCOLADO")]
+    assert f"id={m['id']}" in linea and "lamport=1" in linea
+
+
+def test_lo_enviado_sobrevive_a_un_reinicio(config):
+    with TestClient(crear_app(config, tareas=[])) as cliente:
+        cliente.post("/api/usuarios", json={"nombre": "ana"})
+        m = enviar(cliente).json()
+    with TestClient(crear_app(config, tareas=[])) as cliente:
+        assert cliente.get("/api/mensajes").json() == [m]
+        assert enviar(cliente).json()["lamport"] == 2
