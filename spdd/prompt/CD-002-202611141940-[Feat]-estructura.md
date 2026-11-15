@@ -108,7 +108,9 @@ una marca menor, el mismo problema de la sección 6 del análisis.
    `encolar_pendiente`), y cada área compone su regla dentro de una transacción. Así la
    atomicidad la garantiza la estructura y la lógica sigue siendo de quien la explica.
 4. **La deduplicación la hace la base de datos.** `id` es `UNIQUE` e insertamos con
-   `INSERT OR IGNORE`: si `rowcount` es 1 era nuevo. *Descartado:* consultar primero y
+   `INSERT … ON CONFLICT (id) DO NOTHING`: si `rowcount` es 1 era nuevo. Solo se ignora
+   el choque de `id`; cualquier otro error sigue fallando. *Sincronizado con el código
+   en #5:* el canvas decía `INSERT OR IGNORE`, que también ignora otras restricciones. *Descartado:* consultar primero y
    luego insertar, porque entre las dos operaciones puede entrar otra petición con el
    mismo `id`.
 5. **Configuración que falla al arrancar.** Se valida todo junto y se informa de todos
@@ -238,8 +240,15 @@ class Transaccion:
     def fijar_reloj(self, valor: int) -> None   # ValueError si retrocede (D11)
     def guardar_mensaje_si_no_existe(self, m) -> bool
     def encolar_pendiente(self, id, proximo_intento) -> None
+    def reprogramar_pendiente(self, id, intentos, proximo_intento) -> None
+    def quitar_pendiente(self, id) -> None
+    def adelantar_pendientes(self, ahora: float) -> int
     def crear_usuario(self, nombre) -> bool
 ```
+
+*Sincronizado con el código en #5:* las tres operaciones de pendientes también están
+en `Transaccion`, para que federación pueda, por ejemplo, quitar un pendiente y
+registrar otra cosa en la misma transacción. Los atajos de `Almacen` las usan.
 
 ### Contenedores
 

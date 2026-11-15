@@ -13,12 +13,15 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, Request
 
+from chat.almacen import Almacen
 from chat.configuracion import Configuracion
 
 
 @dataclass
 class Contexto:
     config: Configuracion
+    # Único acceso a SQLite: usuarios, mensajes, reloj y pendientes (D06, D11).
+    almacen: Almacen
     # Cliente para hablar con el central: base_url = URL_CENTRAL y timeout = HTTP_TIMEOUT_S.
     # Se usa con rutas relativas: `await ctx.http.post("/messages", json=...)`.
     http: httpx.AsyncClient
