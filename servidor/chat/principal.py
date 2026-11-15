@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from chat.api_local import rutas as rutas_api_local
 from chat.configuracion import Configuracion
 from chat.contexto import Contexto
+from chat.eventos import Evento, registrar
 from chat.federacion import rutas as rutas_federacion
 from chat.presencia import rutas as rutas_presencia
 
@@ -52,6 +53,7 @@ def crear_app(config: Configuracion, tareas: Sequence[TareaDeFondo] | None = Non
             # Se arranca suponiendo que el central está vivo (análisis, sección 8).
             contexto.central_disponible.set()
             app.state.contexto = contexto
+            registrar(Evento.ARRANQUE, central=config.url_central)
             corriendo = [
                 asyncio.create_task(_vigilar(tarea, contexto), name=tarea.__name__)
                 for tarea in tareas_a_lanzar
@@ -62,6 +64,7 @@ def crear_app(config: Configuracion, tareas: Sequence[TareaDeFondo] | None = Non
                 for tarea in corriendo:
                     tarea.cancel()
                 await asyncio.gather(*corriendo, return_exceptions=True)
+                registrar(Evento.PARADA)
 
     app = FastAPI(title=f"Chat distribuido · {config.grupo}", lifespan=ciclo_de_vida)
     app.include_router(rutas_api_local.router)
