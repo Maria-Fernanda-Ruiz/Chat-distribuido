@@ -1,0 +1,10 @@
+# Solo configura pytest; el servidor no se instala como paquete.
+[tool.pytest.ini_options]
+testpaths = ["pruebas"]
+pythonpath = ["."]
+addopts = "-q -p no:cacheprovider"
+filterwarnings = [
+    # Starlette 1.x sugiere httpx2 para su TestClient. El servidor usa httpx 0.28 (D05),
+    # que sigue funcionando; el aviso solo afecta a las pruebas.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]

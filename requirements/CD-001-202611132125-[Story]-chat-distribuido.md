@@ -4,7 +4,7 @@
 |---|---|
 | ID | CD-001 |
 | Tipo | Historia (paso 1 de SPDD) |
-| Estado | Borrador; ronda 1 de decisiones cerrada (D03–D09), pendientes abiertos en el README |
+| Estado | Borrador; rondas 1 y 2 de decisiones cerradas (D03–D16), pendientes abiertos en el README. Análisis: [CD-001](../spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md) |
 | Fecha | 2026-11-13 |
 | Fuente | [Enunciado «Proyecto final: chat distribuido entre grupos»](enunciado/enunciado.md), Sistemas Distribuidos, UIS ([PDF](enunciado/proyecto_final_v2.pdf)) |
 
@@ -52,6 +52,8 @@ Como integrante del grupo quiero crear usuarios del grupo y que ellos y el histo
 sobrevivan a un reinicio (requisitos 2 y 3).
 
 - Se pueden crear usuarios del grupo; se escriben `usuario@gN`, por ejemplo `ana@g3`.
+  No tienen contraseña: un nombre único de 1 a 20 caracteres entre minúsculas, números,
+  `_` y `-` ([D12](../README.md#log-de-decisiones)).
 - Un usuario puede enviar y leer mensajes de `#general`.
 - Usuarios e historial sobreviven a `docker compose restart`. El almacenamiento es SQLite
   en un volumen ([D06](../README.md#log-de-decisiones)).
@@ -64,8 +66,7 @@ Como servidor del grupo quiero registrarme en el central al arrancar y renovar e
 registro, para que me reenvíe los mensajes (requisito 4).
 
 - Al arrancar: `POST /register` con `{"server": "gN", "url": "<URL pública>"}`.
-- El registro se renueva periódicamente; el intervalo está por decidir
-  ([P09](../README.md#decisiones-pendientes)).
+- El registro se renueva periódicamente, cada 30 s por defecto ([D10](../README.md#log-de-decisiones)).
 - La URL del central sale de la configuración (HU1).
 
 ### HU4 · Enviar y recibir mensajes de `#general`
@@ -94,8 +95,8 @@ repetido (requisito 6, figura 3).
 - Recibir en `POST /fed/messages` un `id` ya conocido responde **200 sin efectos**
   (idempotente).
 - Reintentar nunca produce mensajes repetidos en pantalla.
-- Base del backoff, máximo y número de intentos: por decidir
-  ([P09](../README.md#decisiones-pendientes)).
+- Backoff de 1 s que se duplica hasta 30 s, con jitter y sin límite de intentos
+  ([D10](../README.md#log-de-decisiones)).
 
 ### HU6 · Orden lógico con relojes de Lamport
 
@@ -106,8 +107,7 @@ los relojes físicos (requisito 7).
 - Al recibir, el reloj pasa a `max(local, recibido) + 1`.
 - El historial se muestra ordenado por `(lamport, origin)`.
 - `sent_at` es solo informativo y nunca se usa para ordenar.
-- Si el reloj se guarda o no para sobrevivir a un reinicio: por decidir
-  ([P10](../README.md#decisiones-pendientes)).
+- El reloj se guarda en SQLite y sobrevive a un reinicio ([D11](../README.md#log-de-decisiones)).
 
 ### HU7 · Detectar que el central se cayó
 
@@ -118,7 +118,7 @@ mandarlos cuando vuelva (requisito 8).
 - Si no responde tras un número **configurable** de intentos, lo marca como caído.
 - Mientras está caído, los mensajes de los usuarios se guardan como pendientes.
 - Cuando vuelve, los pendientes se envían (con HU5).
-- Intervalo y número de intentos: por decidir ([P09](../README.md#decisiones-pendientes)).
+- Consulta cada 5 s y lo marca caído tras 3 fallos seguidos ([D10](../README.md#log-de-decisiones)).
 
 ### HU8 · Recuperar lo que me perdí
 
@@ -128,8 +128,8 @@ Como servidor del grupo quiero ponerme al día después de arrancar o de una ca�
 - Al arrancar, y al volver de una caída, el servidor pide
   `GET /history?since={lamport}` al central.
 - Lo recibido pasa por la misma deduplicación de HU5 y el mismo reloj de HU6.
-- Qué valor de `since` se usa (el último `lamport` visto, guardado en el almacenamiento):
-  se fija en el análisis.
+- Al arrancar se pide `since=0`; al volver de una caída del central, el último
+  `lamport` visto ([D16](../README.md#log-de-decisiones)).
 
 ### HU9 · Cliente sencillo
 
@@ -149,7 +149,7 @@ y de la demo (requisito 11, sección 10).
 - Una línea legible por cada mensaje enviado, recibido, reintentado o descartado, con su
   `id` y su marca de Lamport.
 - `docker compose logs` los muestra desde el arranque.
-- El formato exacto se fija en el análisis o el canvas.
+- El formato está en el [análisis, sección 10](../spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#10-eventos-del-log).
 
 ### HU11 · Experimento
 

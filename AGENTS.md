@@ -11,7 +11,11 @@ transcripción), la historia CD-001 con HU1–HU12, la plantilla del canvas REAS
 README con D01–D02 y los pendientes P01–P14. El 2026-11-14 Javier, como PM, cerró la
 ronda 1 (D03–D09): reparto por flujo del mensaje, FastAPI con httpx, SQLite, cliente web,
 entrega el jueves 19 de noviembre, y 23 issues en 5 milestones con responsable cada uno.
-**No hay código de la aplicación.**
+El mismo día cerró la ronda 2 (D10–D16): parámetros, persistencia del reloj, usuarios sin
+contraseña, idioma, flujo de Git, aprobación del canvas por el PM y el `since` del
+historial. Escribió el análisis del protocolo (provisional hasta P07) y el canvas de la
+estructura (CD-002), y abrió en PR el código de la etapa 1 (#3–#6). Las áreas todavía no
+tienen canvas ni código.
 
 Leer en este orden:
 
@@ -22,15 +26,18 @@ Leer en este orden:
    pendientes.
 2. [`requirements/CD-001-…-[Story]-…`](requirements/): historias HU1–HU12 con sus
    criterios de aceptación.
-3. [`spdd/analysis/`](spdd/analysis/): vacío. Aquí va el análisis de la especificación y
-   del script de conformidad.
-4. [`spdd/prompt/`](spdd/prompt/): vacío. Aquí va el canvas.
+3. [`spdd/analysis/`](spdd/analysis/): el análisis CD-001 con el contrato de cada
+   endpoint, las reglas de Lamport, los parámetros, los eventos del log y los supuestos
+   S1–S9 que se revisan cuando llegue la especificación.
+4. [`spdd/prompt/`](spdd/prompt/): el canvas CD-002 de la estructura, con los contratos
+   (configuración, contexto, almacén, modelo y eventos) sobre los que programa cada área.
 5. [`spdd/template/REASONS-canvas.md`](spdd/template/REASONS-canvas.md): la plantilla.
 
 ## Reglas
 
-1. **No escribir código de la aplicación** hasta que el canvas REASONS esté escrito y
-   el equipo lo haya revisado. Es una decisión del equipo, no una sugerencia.
+1. **No escribir código de la aplicación** hasta que el canvas REASONS de esa parte esté
+   escrito y aprobado por el PM (D15). El equipo lo revisa en el PR; si pide un cambio,
+   primero se corrige el canvas. Es una decisión del equipo, no una sugerencia.
 2. **Las decisiones se iteran con el equipo; el agente no decide solo.** Se presenta
    cada pregunta con sus opciones, se marca una recomendada y se explica qué cambia
    con cada una. Cuando el equipo confirma:
@@ -54,13 +61,13 @@ Leer en este orden:
    OpenAPI del profesor; ante cualquier diferencia con el resumen del enunciado, manda la
    especificación. Las dudas se resuelven en el foro del curso. No se comparte código con
    otros grupos.
-5. Idioma: español en el código, la API propia, los commits y los documentos (pendiente
-   P13 hasta que el equipo lo confirme).
+5. Idioma: español en el código, la API propia, los commits y los documentos; los campos
+   y rutas del protocolo, como en la especificación (D13).
 6. Los diagramas Mermaid deben renderizar en GitHub. Hay que probarlos antes de hacer
    commit.
-7. Git: una rama y un PR por cada cosa terminada, con Conventional Commits. Nunca se
-   hace push directo a `main` (el primer commit, que creó la rama, fue la excepción).
-   Prefijos de rama: `docs/`, `feat/`, `fix/` (pendiente P14).
+7. Git: una rama y un PR por cada cosa terminada, con Conventional Commits y
+   `Closes #N`. Nunca se hace push directo a `main` (el primer commit, que creó la rama,
+   fue la excepción). Prefijos de rama: `docs/`, `feat/`, `fix/` (D14).
 8. **Todo lo que se ejecute corre en contenedores**: el enunciado exige
    `docker compose up` en un equipo limpio. La configuración (grupo, URL pública, URL del
    central) va por variables de entorno, nunca escrita en el código.
@@ -70,15 +77,17 @@ Leer en este orden:
 
 ## Próximos pasos, en orden
 
-1. Revisar la historia CD-001 y la tabla «Tareas y responsables» del README; cerrar los
-   pendientes que quedan (paso 2).
+1. Fusionar, en orden, los PR de la etapa 1: análisis y canvas (#2), esqueleto (#3),
+   contenedores (#4), modelo y eventos (#6) y persistencia (#5). Antes de cada uno,
+   comprobar que su base ya sea `main`.
 2. Conseguir la especificación OpenAPI, los ejemplos JSON y el script de conformidad
-   (P07) y guardarlos en el repo.
-3. Escribir el análisis en `spdd/analysis/` (paso 3).
-4. Escribir el canvas en `spdd/prompt/` a partir de la plantilla (paso 4). Su sección
-   Operations será la lista de tareas del código, con el rol de cada una.
-5. Código, tarea por tarea (paso 5). Punto de control de la etapa 1 del enunciado: el
-   compose levanta un servidor vacío que responde `GET /fed/health`.
+   (P07), guardarlos en `spdd/analysis/especificacion/` y revisar contra ellos los
+   supuestos S1–S9 del análisis.
+3. Cada área escribe su canvas en `spdd/prompt/` sobre los contratos de CD-002 (CD-003
+   API local, CD-004 federación, CD-005 presencia) y lo aprueba el PM. Su sección
+   Operations es la lista de tareas de su código.
+4. Código de cada área, tarea por tarea. Punto de control de la etapa 2: dos usuarios
+   del grupo conversan localmente y el historial sobrevive a un reinicio.
 
 ## Cómo seguir
 

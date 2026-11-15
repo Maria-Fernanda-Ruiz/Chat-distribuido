@@ -12,11 +12,13 @@ registrada en este README.
 
 ## Estado
 
-> **Fase actual: decisiones y reparto (paso 2 de SPDD).** Está la
-> [historia](requirements/) con HU1–HU12, sacada del [enunciado](requirements/enunciado/enunciado.md).
-> Hay 9 decisiones tomadas y 10 pendientes. El trabajo está repartido en
+> **Fase actual: análisis, canvas de la estructura y código de la etapa 1 (pasos 3 a 5
+> de SPDD).** Está la [historia](requirements/) con HU1–HU12, el
+> [análisis](spdd/analysis/) del protocolo (provisional hasta que llegue la
+> especificación, P07) y el [canvas de la estructura](spdd/prompt/). Hay 16 decisiones
+> tomadas y 5 pendientes. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
-> noviembre**. **No hay código de la aplicación.**
+> noviembre**. El código de la etapa 1 (#3–#6) está en PR.
 
 ```mermaid
 flowchart LR
@@ -31,10 +33,12 @@ flowchart LR
     classDef actual fill:#f9a825,stroke:#f57f17,color:#000000
     class H actual
     class C actual
+    class AN actual
+    class CV actual
 ```
 
 Verde: terminado. Amarillo: en curso. La historia está en borrador hasta que el equipo
-la revise.
+la revise, y el análisis es provisional hasta que llegue la especificación (P07).
 
 ## Integrantes y roles
 
@@ -106,9 +110,9 @@ Reglas que seguimos:
 | Carpeta | Contenido |
 |---|---|
 | [`requirements/`](requirements/) | Historia y criterios de aceptación (paso 1), y el [enunciado del docente](requirements/enunciado/enunciado.md) |
-| [`spdd/analysis/`](spdd/analysis/) | Análisis (paso 3): la especificación OpenAPI y el script de conformidad, cuando lleguen |
+| [`spdd/analysis/`](spdd/analysis/) | Análisis (paso 3): [contrato del protocolo y parámetros](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md), y la especificación OpenAPI y el script de conformidad cuando lleguen |
 | [`spdd/template/`](spdd/template/) | Plantilla del canvas REASONS |
-| [`spdd/prompt/`](spdd/prompt/) | Canvas REASONS (paso 4), todavía vacío |
+| [`spdd/prompt/`](spdd/prompt/) | Canvas REASONS (paso 4): [CD-002, estructura](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md). Cada área agrega el suyo |
 
 Los archivos siguen el patrón del artículo: `ID-AAAAMMDDhhmm-[Tipo]-descripcion.md`, con
 el prefijo `CD` (chat distribuido).
@@ -128,6 +132,13 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar.
 | D07 | **Cliente web mínimo** (HTML y JS sin build) servido por el mismo FastAPI, que consulta el historial cada segundo. Cierra P05 | Línea de comandos; ambos | Se ve mejor en la demo y en el póster y no hay que instalar nada | S | 1 |
 | D08 | **Entrega y sesión de interoperabilidad: jueves 19 de noviembre de 2026.** Un milestone por etapa: 15, 16, 17, 18 y 19 de noviembre | — | Fecha del curso; las etapas del enunciado tienen un punto de control verificable cada una | O | 1 |
 | D09 | **Póster a partir de la plantilla en PowerPoint**, a cargo de Javier | LaTeX; Canva | Es el formato de partida; una sola persona mantiene el póster coherente mientras los demás programan | N | 1 |
+| D10 | **Parámetros iniciales**, todos configurables por variables de entorno: heartbeat al central cada 5 s y caído tras 3 fallos seguidos; registro renovado cada 30 s; backoff de 1 s que se duplica hasta 30 s, con jitter y sin límite de intentos; timeout HTTP de 3 s. Cierra P09 | Valores rápidos para la demo (2 s, 2 fallos, 15 s, hasta 10 s); esperar a la especificación | Detecta la caída en 15–24 s sin falsos positivos por un timeout suelto. Sin límite de intentos, porque un tope perdería mensajes. El jitter evita que todos los grupos reintenten a la vez cuando vuelve el central | A | 2 |
+| D11 | **El reloj de Lamport y la cola de pendientes se guardan en SQLite**, en la misma base que los mensajes. Cierra P10 | Tenerlos solo en memoria | Si el reloj vuelve a 0, nuestros mensajes nuevos quedan ordenados antes que los viejos; si se pierden los pendientes, se pierden mensajes | E | 2 |
+| D12 | **Usuarios sin contraseña:** un nombre único en el grupo, de 1 a 20 caracteres entre minúsculas, números, `_` y `-`, para que `nombre@gN` sea válido en cualquier grupo. El cliente recuerda el nombre elegido. Cierra P11 | Contraseña con hash y token de sesión; token entregado al crear el usuario | El enunciado no pide autenticación, y cada cosa extra es trabajo para la API local y código que hay que saber explicar | E | 2 |
+| D13 | **Todo en español:** código, API propia, commits y documentos. Los campos y rutas del protocolo con el central quedan como los define la especificación. Cierra P13 | Todo en inglés | El equipo y el curso trabajan en español; el protocolo no se negocia | N | 2 |
+| D14 | **Flujo de Git:** una rama y un PR por cosa terminada (prefijos `docs/`, `feat/`, `fix/`), Conventional Commits y `Closes #N`; nunca push directo a `main`. Cierra P14 | Trabajar directo en `main` | Cada PR se revisa como una sola cosa y el historial muestra quién hizo qué, que también se evalúa | N | 2 |
+| D15 | **El PM aprueba el canvas** para que el código pueda empezar; el equipo lo revisa en el PR y, si pide un cambio, primero se corrige el canvas. Ajusta la regla 1 de `AGENTS.md` | Esperar a que los cuatro lo revisen antes de programar | La etapa 1 vence el 15 de noviembre y las demás áreas no pueden programar sin la estructura | N | 2 |
+| D16 | **`since` al recuperar historial:** al arrancar se pide `since=0` y la deduplicación descarta lo repetido; al volver el central se pide el último `lamport` visto. Cierra P15, que surgió en el análisis | Siempre el último visto; último visto menos un margen | Lamport no ordena los mensajes concurrentes: un grupo que acaba de arrancar puede mandar una marca menor que la nuestra, y con «último visto» lo perderíamos. Es justo lo que mide el experimento ([análisis, sección 6](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#6-qué-since-pedir-al-recuperar-historial-d16)) | A | 2 |
 
 ## Decisiones pendientes
 
@@ -141,12 +152,7 @@ pendiente.
 | P06 | ¿Qué experimento? | Pérdidas ante una caída, porque mide lo mismo que muestra la demo (al menos una vez, deduplicación y recuperación). Lo cierra Manuel con el PM en [#19](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/19) | HU11, póster |
 | P07 | ¿Dónde están la especificación OpenAPI, los ejemplos JSON y el script de conformidad? | Al 2026-11-14 no se han publicado. Javier pregunta al profesor y en el foro ([#1](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/1)); mientras tanto, los issues del protocolo llevan la etiqueta `protocolo-provisional` | Análisis (paso 3) y todo el protocolo |
 | P08 | ¿Qué es el «modo alternativo» si el central no puede llamarnos? | Leerlo en la especificación cuando llegue (P07) | HU12 |
-| P09 | Parámetros: intervalo de renovación del registro, intervalo del heartbeat, intentos para marcar caído, base y máximo del backoff | Fijarlos en el análisis, todos configurables por variables de entorno | HU3, HU5, HU7 |
-| P10 | ¿El reloj de Lamport y la cola de pendientes se guardan para sobrevivir a un reinicio? | Sí, en el mismo almacenamiento; si no, el reloj podría retroceder | HU6, HU7, HU8 |
-| P11 | ¿Los usuarios necesitan contraseña, o basta con el nombre? | Solo nombre: el enunciado no pide autenticación | HU2 |
 | P12 | ¿Cómo será alcanzable nuestra URL pública por el central (red de la sala, túnel)? | Depende de la red de la sesión y del modo alternativo (P08) | HU1, HU3, HU12 |
-| P13 | ¿Todo en español: código, API propia, commits y documentos? | Sí; el protocolo con el central se deja como lo define la especificación (en inglés) | Norms |
-| P14 | Flujo de Git | Una rama y un PR por cosa terminada, Conventional Commits, nunca push directo a `main` (salvo el primer commit, que crea la rama) | Norms |
 
 ## Tareas y responsables
 
@@ -166,12 +172,85 @@ resumen del enunciado y se revisan cuando llegue la especificación (P07).
 La base común (etapa 1) va primero porque las demás áreas programan sobre ella. Mientras
 tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/2)).
 
+## Cómo levantarlo
+
+Solo hace falta Docker con Compose. Todo corre en contenedores (regla 8 de
+[`AGENTS.md`](AGENTS.md)).
+
+```bash
+cp .env.example .env          # llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+docker compose up --build     # servidor en http://localhost:8000
+curl localhost:8000/fed/health
+```
+
+Si falta una variable obligatoria o un valor no es válido, el servidor no arranca y el
+log dice cuál es. Cada variable está explicada en [`.env.example`](.env.example). Las
+opcionales vacías toman los valores de [D10](#log-de-decisiones). Los datos (SQLite)
+viven en el volumen `datos` y sobreviven a `docker compose restart`. `docker compose down
+-v` los borra.
+
+Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
+
+```bash
+docker compose -f docker-compose.local.yml up --build              # gNa en :8001 y gNb en :8002
+docker compose -f docker-compose.local.yml run --rm --build pruebas # todas las pruebas (pytest)
+```
+
+## Código
+
+El servidor está en [`servidor/chat/`](servidor/chat/). La estructura y los contratos
+entre módulos están en el [canvas CD-002](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md).
+Cada área programa en su carpeta, donde un archivo de partida explica qué va ahí:
+
+| Carpeta | Qué hay | Responsable | Issues |
+|---|---|---|---|
+| [`chat/api_local/`](servidor/chat/api_local/) | API local y cliente web | Maria Fernanda | #20–#23 |
+| [`chat/federacion/`](servidor/chat/federacion/) | Reloj de Lamport, `POST /fed/messages`, envío con reintentos | Karen | #12–#14 |
+| [`chat/presencia/`](servidor/chat/presencia/) | `GET /fed/health`, registro, heartbeat, recuperación de historial | Manuel | #15–#18 |
+| El resto de [`chat/`](servidor/chat/) | Configuración, contexto, arranque, almacén, modelo y eventos | Javier | #3–#6 |
+
+Una tarea de fondo nueva se agrega a `TAREAS_DE_FONDO` en
+[`principal.py`](servidor/chat/principal.py). Lo que comparten las áreas pasa por
+[`Contexto`](servidor/chat/contexto.py); las áreas no se importan entre sí.
+
+### Cómo registrar eventos
+
+Los logs son la base del experimento y de la demo, así que todas las áreas registran
+sus eventos con la misma función de [`eventos.py`](servidor/chat/eventos.py):
+
+```python
+from chat.eventos import Evento, registrar
+
+registrar(Evento.REINTENTO, mensaje, intento=2, espera_s=1.7, causa="timeout")
+```
+
+```text
+2026-11-14T19:40:05.210Z g3 REINTENTO id=6f1c2a9e-… lamport=42 origin=g3 from=ana@g3 intento=2 espera_s=1.7 causa=timeout
+```
+
+- Si se pasa el mensaje, la línea lleva su `id`, `lamport`, `origin` y `from`; después
+  van los detalles en el orden en que se escriben.
+- Un valor con espacios sale entre comillas, y un detalle `None` no sale.
+- El cuerpo del mensaje nunca va al log.
+- Los eventos y los campos de cada uno están en el
+  [análisis, sección 10](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#10-eventos-del-log).
+  Para agregar uno, primero se agrega al análisis y al canvas.
+
+Los mensajes del protocolo se leen y se crean con [`Mensaje`](servidor/chat/modelo.py):
+
+- `Mensaje.model_validate(json)` acepta campos desconocidos.
+- `Mensaje.nuevo(usuario=…, grupo=…, lamport=…, body=…)` crea uno nuestro con un `id`
+  nuevo.
+- `mensaje.a_json()` lo deja listo para enviar, con `from`.
+
 ## Cómo continuar
 
 Las instrucciones para cualquier persona o agente están en [`AGENTS.md`](AGENTS.md).
-Cada integrante toma sus issues en el orden de los milestones. Antes de programar una
-parte se revisa su canvas, y las preguntas nuevas se agregan como pendientes. Lo más
-urgente es conseguir la especificación (P07): manda sobre todo lo provisional.
+Cada integrante toma sus issues en el orden de los milestones. Antes de programar su
+parte, cada área escribe su canvas sobre los contratos de la
+[estructura](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md) y lo aprueba el PM
+(D15). Las preguntas nuevas se agregan como pendientes. Lo más urgente sigue siendo
+conseguir la especificación (P07), que manda sobre todo lo provisional.
 
 ## Fuentes
 
