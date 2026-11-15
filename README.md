@@ -15,7 +15,7 @@ registrada en este README.
 > **Fase actual: análisis, canvas de la estructura y código de la etapa 1 (pasos 3 a 5
 > de SPDD).** Está la [historia](requirements/) con HU1–HU12, el
 > [análisis](spdd/analysis/) del protocolo (provisional hasta que llegue la
-> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 23 decisiones
+> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 24 decisiones
 > tomadas y 6 pendientes. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**. El código de la etapa 1 (#3–#6) está en PR.
@@ -146,6 +146,7 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D21 | **Enviar con un usuario que no existe responde 404** | 422 | Es lo estándar cuando lo que se nombra no existe | R | 3 |
 | D22 | **El texto del mensaje va de 1 a 1 000 caracteres;** vacío o solo espacios, o más de 1 000 → 422 | Solo no vacío; sin límites; 2 000 (Discord) o 4 000 (Telegram) | Evita mensajes en blanco en `#general` y textos enormes que viajan a todos los grupos, sin limitar un mensaje normal de chat | R | 3 |
 | D23 | **El cliente web se abre en `/`** | `/cliente` | Es lo más cómodo en la demo: se abre la URL del servidor y aparece el chat | S | 3 |
+| D24 | **El cliente web (#23) se programa antes de enviar (#21).** Cambia el orden de la sección O de CD-003 | Esperar a #12 y P16 sin avanzar | #21 depende del reloj de Karen (#12) y de P16. El cliente solo usa rutas ya fijadas en el canvas, así que puede ir antes; queda listo para enviar cuando llegue #21, sin cambiarlo | O | 3 |
 
 ## Decisiones pendientes
 
