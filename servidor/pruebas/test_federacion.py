@@ -1,4 +1,3 @@
-
 """Pruebas de recepción de mensajes federados (#13)."""
 
 import logging
@@ -24,6 +23,7 @@ def test_recibir_mensaje_nuevo_lo_guarda_y_actualiza_lamport(cliente, caplog):
     almacen = cliente.app.state.contexto.almacen
 
     assert respuesta.status_code == 200
+    assert respuesta.json() == {"duplicate": False}
     assert almacen.contar_mensajes() == 1
     assert almacen.leer_reloj() == 8
 
@@ -31,11 +31,16 @@ def test_recibir_mensaje_nuevo_lo_guarda_y_actualiza_lamport(cliente, caplog):
     assert guardado.id == "m1"
 
     assert "RECIBIDO id=m1" in caplog.text
+    assert "via=fed" in caplog.text
+    assert "reloj=8" in caplog.text
 
 
 def test_recibir_mensaje_duplicado_no_lo_guarda_ni_actualiza_lamport(cliente, caplog):
     with caplog.at_level(logging.INFO, logger="chat.eventos"):
-        cliente.post("/fed/messages", json=mensaje_ejemplo())
+        primera_respuesta = cliente.post(
+            "/fed/messages",
+            json=mensaje_ejemplo(),
+        )
 
         respuesta = cliente.post(
             "/fed/messages",
@@ -44,7 +49,11 @@ def test_recibir_mensaje_duplicado_no_lo_guarda_ni_actualiza_lamport(cliente, ca
 
     almacen = cliente.app.state.contexto.almacen
 
+    assert primera_respuesta.status_code == 200
+    assert primera_respuesta.json() == {"duplicate": False}
+
     assert respuesta.status_code == 200
+    assert respuesta.json() == {"duplicate": True}
     assert almacen.contar_mensajes() == 1
     assert almacen.leer_reloj() == 8
 
@@ -53,6 +62,7 @@ def test_recibir_mensaje_duplicado_no_lo_guarda_ni_actualiza_lamport(cliente, ca
 
     assert "RECIBIDO id=m1" in caplog.text
     assert "DUPLICADO_DESCARTADO id=m1" in caplog.text
+    assert "via=fed" in caplog.text
 
 
 def test_recibir_mensaje_ignora_campos_desconocidos(cliente):
