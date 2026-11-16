@@ -1,4 +1,4 @@
-﻿"""Endpoints de federación que llama el central (Karen, #13).
+"""Endpoints de federación que llama el central (Karen, #13).
 
 Aquí se implementa POST /fed/messages (análisis, sección 4):
 
@@ -31,14 +31,14 @@ def recibir_mensaje(mensaje: Mensaje, ctx: ContextoDep) -> dict[str, bool]:
         nuevo = tx.guardar_mensaje_si_no_existe(mensaje)
 
         if nuevo:
-            recibir(mensaje.lamport, tx)
+            reloj = recibir(mensaje.lamport, tx)
 
     if nuevo:
         registrar(
             Evento.RECIBIDO,
             mensaje,
             via="fed",
-            reloj=ctx.almacen.leer_reloj(),
+            reloj=reloj,
         )
     else:
         registrar(
