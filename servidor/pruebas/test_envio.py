@@ -203,3 +203,49 @@ def test_central_caido_no_intenta_enviar(tmp_path, config):
 
     assert solicitudes == []
     assert almacen.contar_pendientes() == 1
+def test_envia_pendientes_en_orden_de_lamport(tmp_path, config):
+    almacen = Almacen(tmp_path / "chat.db")
+    almacen.inicializar()
+
+    mensajes = []
+
+    for lamport in (3, 1, 2):
+        mensaje = Mensaje.nuevo(
+            usuario="ana",
+            grupo=config.grupo,
+            lamport=lamport,
+            body=f"Mensaje {lamport}",
+        )
+
+        with almacen.transaccion() as tx:
+            tx.guardar_mensaje_si_no_existe(mensaje)
+            tx.encolar_pendiente(mensaje.id, time.time())
+
+        mensajes.append(mensaje)
+
+    mensajes_recibidos = []
+
+    def handler(request):
+        mensajes_recibidos.append(json.loads(request.content))
+        return httpx.Response(200)
+
+    contexto = crear_contexto(config, almacen, handler)
+
+    async def ejecutar():
+        tarea = asyncio.create_task(enviar_pendientes(contexto))
+        try:
+            await esperar_hasta(lambda: almacen.contar_pendientes() == 0)
+        finally:
+            tarea.cancel()
+            await asyncio.gather(tarea, return_exceptions=True)
+            await contexto.http.aclose()
+
+    asyncio.run(ejecutar())
+
+    assert almacen.contar_pendientes() == 0
+    assert [mensaje["lamport"] for mensaje in mensajes_recibidos] == [1, 2, 3]
+    assert [mensaje["id"] for mensaje in mensajes_recibidos] == [
+        mensajes[1].id,
+        mensajes[2].id,
+        mensajes[0].id,
+    ]
