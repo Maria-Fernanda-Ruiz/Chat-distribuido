@@ -244,3 +244,26 @@ def test_lo_enviado_sobrevive_a_un_reinicio(config):
     with TestClient(crear_app(config, tareas=[])) as cliente:
         assert cliente.get("/api/mensajes").json() == [m]
         assert enviar(cliente).json()["lamport"] == 2
+
+
+# ---------------------------------------------------------------- cliente web (#23)
+
+
+def test_la_raiz_sirve_el_cliente_web(cliente):
+    respuesta = cliente.get("/")
+    assert respuesta.status_code == 200
+    assert respuesta.headers["content-type"].startswith("text/html")
+    assert "<title>Chat #general</title>" in respuesta.text
+
+
+def test_el_cliente_nunca_usa_innerhtml_ni_librerias_externas(cliente):
+    """Salvaguarda 6 y norma del cliente: textos con textContent y sin CDN."""
+    html = cliente.get("/").text
+    assert "innerHTML" not in html
+    assert "http://" not in html and "https://" not in html
+
+
+def test_el_cliente_usa_las_rutas_de_la_api_local(cliente):
+    html = cliente.get("/").text
+    for ruta in ["/api/usuarios", "/api/mensajes", "desde_lamport="]:
+        assert ruta in html

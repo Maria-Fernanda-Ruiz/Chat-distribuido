@@ -1,0 +1,267 @@
+<!doctype html>
+<!--
+  Cliente web mínimo del chat (#23, canvas CD-003).
+  Un solo archivo, sin librerías ni CDN, para que funcione sin internet en la sala.
+  Usa solo la API local: /api/usuarios y /api/mensajes.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat #general</title>
+  <style>
+    :root {
+      --fondo: #f4f5f7;
+      --tarjeta: #ffffff;
+      --texto: #1d2129;
+      --suave: #6b7280;
+      --borde: #d9dce1;
+      --propio: #dbeafe;        /* mensajes de nuestro grupo (D20) */
+      --propio-borde: #2563eb;
+      --otro: #fef3c7;          /* mensajes de otros grupos (D20) */
+      --otro-borde: #d97706;
+      --error: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--fondo); color: var(--texto);
+      display: flex; flex-direction: column; height: 100vh;
+    }
+    header, footer { background: var(--tarjeta); border-color: var(--borde); padding: 12px 16px; }
+    header { border-bottom: 1px solid var(--borde); }
+    footer { border-top: 1px solid var(--borde); }
+    h1 { font-size: 1.1rem; margin: 0 0 8px; }
+    .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    select, input, button { font: inherit; padding: 6px 10px; border: 1px solid var(--borde); border-radius: 6px; }
+    button { background: var(--propio-borde); color: #fff; border: none; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    #mensaje { flex: 1; min-width: 0; }
+    #error { color: var(--error); margin: 6px 0 0; min-height: 1.2em; font-size: .9rem; }
+    #leyenda { font-size: .85rem; color: var(--suave); }
+    .muestra { display: inline-block; width: .8em; height: .8em; border-radius: 2px; vertical-align: middle; }
+    main { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    #lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    #lista li { padding: 6px 10px; border-radius: 6px; border-left: 4px solid; max-width: 760px; }
+    #lista li.propio { background: var(--propio); border-color: var(--propio-borde); }
+    #lista li.otro { background: var(--otro); border-color: var(--otro-borde); }
+    .quien { font-weight: 600; margin-right: 8px; }
+    .marca { float: right; margin-left: 12px; color: var(--suave); font-size: .8rem; }
+    .cuerpo { white-space: pre-wrap; overflow-wrap: anywhere; }
+    #vacio { color: var(--suave); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Chat #general</h1>
+    <div class="fila">
+      <label for="usuario">Usuario:</label>
+      <select id="usuario"></select>
+      <input id="nuevo" placeholder="nuevo usuario" maxlength="20" autocomplete="off">
+      <button id="crear" type="button">Crear</button>
+      <span id="leyenda">
+        <span class="muestra" style="background: var(--propio-borde)"></span> mi grupo
+        <span class="muestra" style="background: var(--otro-borde)"></span> otros grupos
+      </span>
+    </div>
+  </header>
+
+  <main id="zona">
+    <p id="vacio">Todavía no hay mensajes en #general.</p>
+    <ul id="lista"></ul>
+  </main>
+
+  <footer>
+    <form id="formulario" class="fila">
+      <input id="mensaje" placeholder="Escribe un mensaje…" maxlength="1000" autocomplete="off">
+      <button id="enviar" type="submit">Enviar</button>
+    </form>
+    <p id="error" role="alert"></p>
+  </footer>
+
+  <script>
+    "use strict";
+
+    const $ = (id) => document.getElementById(id);
+    const CLAVE_USUARIO = "chat.usuario";   // D12: se recuerda el nombre en el navegador
+
+    let grupo = null;                       // nuestro grupo, sacado de la dirección de un usuario
+    let ultimoLamport = 0;                  // D19: lo nuevo se pide por lamport
+    const mensajes = new Map();             // id → mensaje; el id evita repetidos
+
+    // ------------------------------------------------------------ utilidades
+
+    function recordarUsuario(nombre) {
+      try { localStorage.setItem(CLAVE_USUARIO, nombre); } catch (_) { /* sin almacenamiento */ }
+    }
+
+    function usuarioRecordado() {
+      try { return localStorage.getItem(CLAVE_USUARIO); } catch (_) { return null; }
+    }
+
+    function mostrarError(texto) { $("error").textContent = texto || ""; }
+
+    // Hace la petición y, si falla, lanza un Error con el `detail` en español del servidor.
+    async function pedir(ruta, opciones = {}) {
+      const respuesta = await fetch(ruta, {
+        ...opciones,
+        headers: { "Content-Type": "application/json" },
+      });
+      const datos = await respuesta.json().catch(() => null);
+      if (!respuesta.ok) {
+        const detalle = datos && typeof datos.detail === "string"
+          ? datos.detail
+          : `El servidor respondió ${respuesta.status}`;
+        throw new Error(detalle);
+      }
+      return datos;
+    }
+
+    // Orden lógico, el mismo del servidor: (lamport, origin, id). Nunca sent_at.
+    function comparar(a, b) {
+      if (a.lamport !== b.lamport) return a.lamport - b.lamport;
+      if (a.origin !== b.origin) return a.origin < b.origin ? -1 : 1;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    }
+
+    function hora(sentAt) {
+      const fecha = new Date(sentAt);
+      if (isNaN(fecha)) return "";
+      return fecha.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+    }
+
+    // ------------------------------------------------------------ usuarios
+
+    async function cargarUsuarios(elegir) {
+      const usuarios = await pedir("/api/usuarios");
+      const lista = $("usuario");
+      lista.replaceChildren();
+      for (const u of usuarios) {
+        const opcion = document.createElement("option");
+        opcion.value = u.nombre;
+        opcion.textContent = u.direccion;
+        lista.append(opcion);
+      }
+      if (usuarios.length > 0) grupo = usuarios[0].direccion.split("@")[1];
+      const deseado = elegir || usuarioRecordado();
+      if (usuarios.some((u) => u.nombre === deseado)) lista.value = deseado;
+      $("enviar").disabled = usuarios.length === 0;
+      $("mensaje").placeholder = usuarios.length === 0
+        ? "Crea un usuario para escribir"
+        : "Escribe un mensaje…";
+    }
+
+    async function crearUsuario() {
+      const nombre = $("nuevo").value.trim();
+      try {
+        const usuario = await pedir("/api/usuarios", {
+          method: "POST", body: JSON.stringify({ nombre }),
+        });
+        $("nuevo").value = "";
+        recordarUsuario(usuario.nombre);
+        await cargarUsuarios(usuario.nombre);
+        mostrarError("");
+        pintar();
+      } catch (e) {
+        mostrarError(e.message);
+      }
+    }
+
+    // ------------------------------------------------------------ mensajes
+
+    function agregar(lista) {
+      let hayNuevos = false;
+      for (const m of lista) {
+        if (!mensajes.has(m.id)) { mensajes.set(m.id, m); hayNuevos = true; }
+        if (m.lamport > ultimoLamport) ultimoLamport = m.lamport;
+      }
+      return hayNuevos;
+    }
+
+    function pintar() {
+      const zona = $("zona");
+      const alFinal = zona.scrollHeight - zona.scrollTop - zona.clientHeight < 40;
+      const ordenados = [...mensajes.values()].sort(comparar);
+      const lista = $("lista");
+      lista.replaceChildren();
+      for (const m of ordenados) {
+        // Todo el texto va con textContent: un body con <script> se ve como texto.
+        const item = document.createElement("li");
+        item.className = m.origin === grupo ? "propio" : "otro";
+
+        const marca = document.createElement("span");
+        marca.className = "marca";
+        marca.textContent = `#${m.lamport} · ${hora(m.sent_at)}`;   // D26
+
+        const quien = document.createElement("span");
+        quien.className = "quien";
+        quien.textContent = m.from;                                  // D20: usuario@gN
+
+        const cuerpo = document.createElement("div");
+        cuerpo.className = "cuerpo";
+        cuerpo.textContent = m.body;
+
+        item.append(marca, quien, cuerpo);
+        lista.append(item);
+      }
+      $("vacio").hidden = ordenados.length > 0;
+      if (alFinal) zona.scrollTop = zona.scrollHeight;
+    }
+
+    async function enviar(evento) {
+      evento.preventDefault();
+      const caja = $("mensaje");
+      const usuario = $("usuario").value;
+      try {
+        const m = await pedir("/api/mensajes", {
+          method: "POST", body: JSON.stringify({ usuario, body: caja.value }),
+        });
+        caja.value = "";          // solo se borra si el servidor lo guardó
+        mostrarError("");
+        agregar([m]);
+        pintar();
+        $("zona").scrollTop = $("zona").scrollHeight;
+      } catch (e) {
+        mostrarError(e.message);  // lo escrito se queda para corregirlo
+      }
+      caja.focus();
+    }
+
+    // Cada ~1 s pide lo que tenga lamport mayor que el último visto (D07, D19).
+    // Un mensaje concurrente que llega tarde con marca menor no aparece hasta recargar:
+    // es la limitación de D19, que se deja a propósito.
+    async function consultar() {
+      try {
+        const nuevos = await pedir(`/api/mensajes?desde_lamport=${ultimoLamport}`);
+        if (agregar(nuevos)) pintar();
+        if ($("error").textContent.startsWith("Sin conexión")) mostrarError("");
+      } catch (e) {
+        mostrarError(`Sin conexión con el servidor: ${e.message}`);
+      }
+      setTimeout(consultar, 1000);
+    }
+
+    // ------------------------------------------------------------ arranque
+
+    $("crear").addEventListener("click", crearUsuario);
+    $("nuevo").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); crearUsuario(); }
+    });
+    $("usuario").addEventListener("change", (e) => recordarUsuario(e.target.value));
+    // Si otra pestaña creó un usuario, aparece al abrir la lista.
+    $("usuario").addEventListener("focus", () => cargarUsuarios($("usuario").value).catch(() => {}));
+    $("formulario").addEventListener("submit", enviar);
+
+    (async () => {
+      try {
+        await cargarUsuarios();
+        agregar(await pedir("/api/mensajes"));   // al abrir, el historial completo
+        pintar();
+      } catch (e) {
+        mostrarError(`Sin conexión con el servidor: ${e.message}`);
+      }
+      setTimeout(consultar, 1000);
+    })();
+  </script>
+</body>
+</html>
