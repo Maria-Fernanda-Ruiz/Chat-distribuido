@@ -1,0 +1,85 @@
+==============================================================================
+Informe de conformidad - parte automática
+Servidor central de Sistemas Distribuidos (UIS)
+==============================================================================
+URL probada:              http://localhost:8001
+Servidor (server):        gNa
+Fecha (UTC):              2026-11-17T00:10:19.199Z
+Versión especificación:   1.0.0
+Versión del script:       1.0.0
+Tiempo de espera:         3 s
+
+Caso 1 - GET /fed/health [obligatorio]
+  Enviado:   GET /fed/health
+  Esperado:  2xx con server (texto) y lamport (entero >= 0)
+  Respuesta: 200 en 16 ms
+  Cuerpo:    {"server":"gNa","lamport":3}
+  Resultado: PASA: server=gNa, lamport=3
+
+Caso 2 - POST /fed/messages con un mensaje nuevo [obligatorio]
+  Enviado:   POST /fed/messages con id 28505243-3331-4d81-a09a-a420c3dba64e y lamport 103 (L + 100, con L el reloj del caso 1)
+  Esperado:  2xx en menos de 3 s
+  Respuesta: 200 en 7 ms
+  Cuerpo:    {"duplicate":false}
+  Resultado: PASA: respondió 200 en 7 ms
+
+Caso 3 - Reloj después del mensaje nuevo [obligatorio]
+  Enviado:   GET /fed/health
+  Esperado:  lamport >= 104: aplicó max(local, 103) + 1
+  Respuesta: 200 en 4 ms
+  Cuerpo:    {"server":"gNa","lamport":104}
+  Resultado: PASA: el reloj pasó de 3 a 104
+
+Caso 4 - Duplicado: el mismo mensaje del caso 2 [obligatorio]
+  Enviado:   POST /fed/messages repitiendo el mensaje del caso 2 (id 28505243-3331-4d81-a09a-a420c3dba64e)
+  Esperado:  2xx en menos de 3 s: un duplicado se descarta por id y se responde 2xx
+  Respuesta: 200 en 6 ms
+  Cuerpo:    {"duplicate":true}
+  Resultado: PASA: respondió 200 en 6 ms
+
+Caso 5 - Reloj después del duplicado [advertencia]
+  Enviado:   GET /fed/health
+  Esperado:  el mismo lamport que en el caso 3: el duplicado no tuvo efectos
+  Respuesta: 200 en 4 ms
+  Cuerpo:    {"server":"gNa","lamport":104}
+  Resultado: PASA: el reloj sigue en 104
+
+Caso 6 - Mensaje nuevo con campos desconocidos [obligatorio]
+  Enviado:   POST /fed/messages con id d35333fc-c16c-4a57-b803-3aeccbce968f y los campos extra prioridad, adjuntos, version_cliente
+  Esperado:  2xx en menos de 3 s: los campos desconocidos se ignoran sin error
+  Respuesta: 200 en 6 ms
+  Cuerpo:    {"duplicate":false}
+  Resultado: PASA: respondió 200 en 6 ms
+
+Caso 7 - Mensaje nuevo con marca menor que el reloj [obligatorio]
+  Enviado:   GET /fed/health, POST /fed/messages con lamport 1, GET /fed/health
+  Esperado:  2xx en menos de 3 s (obligatorio) y el reloj sube exactamente 1 (advertencia)
+  Respuesta: 200 en 5 ms
+  Cuerpo:    {"duplicate":false}
+  Resultado: PASA: respondió 200 en 5 ms; el reloj pasó de 105 a 106: max(105, 1) + 1
+
+Caso 8 - Mensaje sin id [advertencia]
+  Enviado:   POST /fed/messages sin el campo id
+  Esperado:  4xx: ni 2xx (lo aceptó) ni 5xx (se cayó). La sección 4 no lo exige
+  Respuesta: 422 en 2 ms
+  Cuerpo:    {"detail":[{"type":"missing","loc":["body","id"],"msg":"Field required","input":{"from":"conformidad@conformidad","origin":"conformidad","lamport":103,"sent_at":"2026-11-17T00:10:19.197Z","body":"[conformidad] mensaje de prueba del script de conformidad; se puede ignorar","seq":4}}]}
+  Resultado: PASA: respondió 422: rechazó el mensaje inválido
+
+Caso 9 - Tiempo de respuesta de cada llamada [obligatorio]
+  Enviado:   ninguna llamada nueva: se revisan las 10 llamadas de los casos 1 a 8
+  Esperado:  cada respuesta en menos de 3 s, el tiempo de espera del central
+  Resultado: PASA: la más lenta fue GET /fed/health (caso 1), con 16 ms
+
+==============================================================================
+Resumen
+==============================================================================
+Casos ejecutados:         9 de 9
+Pasan:                    9
+Fallan:                   0
+Advertencias:             0
+No evaluados:             0
+Veredicto:                CONFORME: pasan todos los casos obligatorios
+Código de salida:         0
+
+Las advertencias no cambian el código de salida: solo deciden los casos
+obligatorios. Los mensajes de prueba llevan origin "conformidad".

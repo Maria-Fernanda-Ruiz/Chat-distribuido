@@ -15,12 +15,34 @@ def errores(entorno: dict[str, str]) -> list[str]:
     return error.value.problemas
 
 
-def test_faltan_las_tres_obligatorias_y_las_informa_todas_juntas():
+def test_faltan_las_obligatorias_y_las_informa_todas_juntas():
+    # En pull, el modo por defecto, URL_PUBLICA no es obligatoria (D27).
     problemas = errores({})
-    assert len(problemas) == 3
+    assert len(problemas) == 2
     assert any("Falta GRUPO" in p for p in problemas)
-    assert any("Falta URL_PUBLICA" in p for p in problemas)
     assert any("Falta URL_CENTRAL" in p for p in problemas)
+
+
+def test_en_push_url_publica_es_obligatoria():
+    problemas = errores({"MODO_RECEPCION": "push"})
+    assert len(problemas) == 3
+    assert any("Falta URL_PUBLICA" in p for p in problemas)
+
+
+def test_en_pull_url_publica_puede_faltar():
+    config = cargar_configuracion({"GRUPO": "g3", "URL_CENTRAL": "https://dsp.cshire.io"})
+    assert config.modo_recepcion == "pull"
+    assert config.url_publica == ""
+    assert config.pull_intervalo_s == 1.5
+
+
+def test_lee_el_modo_de_recepcion():
+    assert cargar_configuracion({**MINIMO, "MODO_RECEPCION": "PUSH"}).modo_recepcion == "push"
+    assert cargar_configuracion({**MINIMO, "PULL_INTERVALO_S": "2"}).pull_intervalo_s == 2
+
+
+def test_rechaza_un_modo_desconocido():
+    assert "MODO_RECEPCION debe ser pull o push" in errores({**MINIMO, "MODO_RECEPCION": "webhook"})[0]
 
 
 def test_una_variable_vacia_cuenta_como_no_definida():

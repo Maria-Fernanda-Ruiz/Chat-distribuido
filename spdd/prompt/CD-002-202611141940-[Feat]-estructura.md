@@ -189,6 +189,7 @@ class Configuracion:
     registro_intervalo_s: float = 30; backoff_base_s: float = 1; backoff_max_s: float = 30
     http_timeout_s: float = 3; ruta_bd: str = "/datos/chat.db"; puerto: int = 8000
     log_accesos: bool = False
+    modo_recepcion: str = "pull"; pull_intervalo_s: float = 1.5   # D27; url_publica solo obligatoria en push
 def cargar_configuracion(entorno: Mapping[str, str]) -> Configuracion  # lanza ErrorDeConfiguracion
 
 # contexto.py

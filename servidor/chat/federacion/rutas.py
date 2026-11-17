@@ -16,8 +16,7 @@ Basado en el canvas CD-004 y los contratos de CD-002.
 from fastapi import APIRouter
 
 from chat.contexto import ContextoDep
-from chat.eventos import Evento, registrar
-from chat.federacion.reloj import recibir
+from chat.federacion.reloj import recibir_mensaje as recibir_en, registrar_recepcion
 from chat.modelo import Mensaje
 
 router = APIRouter(tags=["Federación (la llama el central)"])
@@ -28,23 +27,7 @@ def recibir_mensaje(mensaje: Mensaje, ctx: ContextoDep) -> dict[str, bool]:
     """Recibe un mensaje federado, descarta duplicados y actualiza Lamport."""
 
     with ctx.almacen.transaccion() as tx:
-        nuevo = tx.guardar_mensaje_si_no_existe(mensaje)
+        reloj = recibir_en(mensaje, tx)
 
-        if nuevo:
-            reloj = recibir(mensaje.lamport, tx)
-
-    if nuevo:
-        registrar(
-            Evento.RECIBIDO,
-            mensaje,
-            via="fed",
-            reloj=reloj,
-        )
-    else:
-        registrar(
-            Evento.DUPLICADO_DESCARTADO,
-            mensaje,
-            via="fed",
-        )
-
-    return {"duplicate": not nuevo}
+    registrar_recepcion(mensaje, reloj, via="fed")
+    return {"duplicate": reloj is None}
