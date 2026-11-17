@@ -16,8 +16,8 @@ registrada en este README.
 > la [historia](requirements/) con HU1–HU12, el [análisis](spdd/analysis/) del protocolo,
 > revisado contra la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion)
 > del central, y los [canvas](spdd/prompt/) de la estructura (CD-002), la API local
-> (CD-003), la federación (CD-004) y la presencia (CD-005). Hay 28 decisiones tomadas y
-> 2 pendientes. El trabajo está repartido en
+> (CD-003), la federación (CD-004) y la presencia (CD-005). Hay 29 decisiones tomadas y
+> 1 pendiente. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**.
 
@@ -117,7 +117,7 @@ el prefijo `CD` (chat distribuido).
 
 ## Log de decisiones
 
-La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-11-14) es la de la API local y el cliente web, con su [canvas](spdd/prompt/) (CD-003). La ronda 5 (2026-11-16) ajusta presencia y recepción a la especificación publicada (CD-005).
+La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-11-14) es la de la API local y el cliente web, con su [canvas](spdd/prompt/) (CD-003). La ronda 5 (2026-11-16) ajusta presencia y recepción a la especificación publicada (CD-005). La ronda 6 (2026-11-17) elige el experimento (CD-006).
 
 | ID | Decisión | Alternativas descartadas | Por qué | REASONS | Ronda |
 |---|---|---|---|---|---|
@@ -149,6 +149,7 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D26 | **Cada mensaje del cliente muestra su número de Lamport junto a la hora**, por ejemplo `#12 · 3:15 p. m.` | Mostrar solo la hora | En la demo y en el póster se ve por qué los mensajes salen en ese orden, y se puede mostrar la limitación de D19 | S | 4 |
 | D27 | **Recepción en pull, según la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion) del central** (`https://dsp.cshire.io`). `MODO_RECEPCION` es `pull` por defecto o `push`. En pull, el servidor pide `GET /history?after_seq=<cursor>&server=<GRUPO>` cada `PULL_INTERVALO_S` (1,5 s) y guarda el cursor `seq` en SQLite, en la misma transacción que el mensaje; `URL_PUBLICA` solo es obligatoria en push. Todo mensaje recibido, por `/fed/messages`, por pull o por historial, pasa por la misma recepción de `federacion.reloj` ([CD-005](spdd/prompt/CD-005-202611161200-[Feat]-presencia-y-recuperacion.md)). Cierra P07, P08 y P12; ajusta D16 | Push con un túnel (cloudflared o ngrok) como modo principal; seguir con el supuesto S9 | Los portátiles están detrás de NAT y el central no puede llamarlos sin túnel; pull solo necesita salida a internet. El cursor `seq` no pierde los mensajes concurrentes que llegan tarde con una marca menor, el riesgo que D16 dejaba abierto | E, A, O | 5 |
 | D28 | **El central simulado de #7 es el central oficial**, construido desde su repositorio público en `docker-compose.local.yml` como servicio `central` (panel en `http://localhost:9000/`) | Escribir un central falso propio | Es el mismo código que corre en `dsp.cshire.io`, así que lo que pasa en local pasa en la sesión, y no hay un central propio que mantener. Una caída se simula con `docker compose -f docker-compose.local.yml stop central` | S | 5 |
+| D29 | **Experimento: pérdidas ante una caída**, variando la duración de la caída (2, 5 y 10 s, 3 repeticiones de cada una). Un script envía 5 mensajes por segundo desde `gNb` mientras apaga `gNa` con `docker kill` y la vuelve a prender; luego cuenta en `gNa` los mensajes perdidos y duplicados, y de paso el tiempo que tarda en ponerse al día ([CD-006](spdd/prompt/CD-006-202611171300-[Feat]-experimento-perdidas.md)). Cierra P06 | Latencia de extremo a extremo; tiempo de recuperación solo; no variar ningún parámetro; caída con `docker compose restart` | Mide lo mismo que muestra la demo (al menos una vez, deduplicación y recuperación). Variar la duración suma en la evaluación. `docker kill` apaga de golpe, sin cierre ordenado, así que es la prueba más dura para la base y el cursor | R, A, O | 6 |
 
 ## Decisiones pendientes
 
@@ -159,7 +160,6 @@ pendiente.
 | ID | Pregunta | Propuesta para discutir | Bloquea |
 |---|---|---|---|
 | P01 | ¿Qué número de grupo somos (`gN`)? | Preguntar al profesor o revisar la lista del curso | Configuración, póster |
-| P06 | ¿Qué experimento? | Pérdidas ante una caída, porque mide lo mismo que muestra la demo (al menos una vez, deduplicación y recuperación). Lo cierra Manuel con el PM en [#19](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/19) | HU11, póster |
 
 ## Tareas y responsables
 
