@@ -77,17 +77,20 @@ Leer en este orden:
 
 ## Próximos pasos, en orden
 
-1. Fusionar, en orden, los PR de la etapa 1: análisis y canvas (#2), esqueleto (#3),
-   contenedores (#4), modelo y eventos (#6) y persistencia (#5). Antes de cada uno,
-   comprobar que su base ya sea `main`.
-2. Conseguir la especificación OpenAPI, los ejemplos JSON y el script de conformidad
-   (P07), guardarlos en `spdd/analysis/especificacion/` y revisar contra ellos los
-   supuestos S1–S9 del análisis.
-3. Cada área escribe su canvas en `spdd/prompt/` sobre los contratos de CD-002 (CD-003
-   API local, CD-004 federación, CD-005 presencia) y lo aprueba el PM. Su sección
-   Operations es la lista de tareas de su código.
-4. Código de cada área, tarea por tarea. Punto de control de la etapa 2: dos usuarios
-   del grupo conversan localmente y el historial sobrevive a un reinicio.
+La etapa 1 ya está en `main`, y la especificación v1.0.0 del central está publicada en
+<https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion>. La
+presencia y la recepción en pull (D27) se ajustaron a ella.
+
+1. El PM ratifica D27 y D28 y se fusiona el PR de presencia y pull, que incluye el canvas
+   CD-005 del #40.
+2. Cerrar P01 (número de grupo), poner `GRUPO` con ese nombre y repetir el script de
+   conformidad contra el servidor del grupo. Su salida reemplaza
+   [`entregables/conformidad.txt`](entregables/conformidad.txt) (#8).
+3. Probar contra el central en la nube, `https://dsp.cshire.io`, en pull y desde dos
+   portátiles distintos.
+4. Experimento (P06, #19): pregunta, script de medición y tres repeticiones.
+5. Cierre: README de despliegue y diagrama de arquitectura (#9), póster (#10), bitácora
+   de interoperabilidad y guion de la sustentación (#11).
 
 ## Cómo seguir
 
