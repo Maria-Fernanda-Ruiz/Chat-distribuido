@@ -1,0 +1,10 @@
+duracion_s,repeticion,enviados,enviados_en_caida,recibidos,perdidos,duplicados,en_orden,t_arranque_s,t_al_dia_s
+2,1,62,11,62,0,0,True,0.51,0.51
+2,2,62,11,62,0,0,True,0.52,0.52
+2,3,62,11,62,0,0,True,0.51,0.52
+5,1,77,26,77,0,0,True,0.51,0.51
+5,2,77,26,77,0,0,True,0.52,0.52
+5,3,77,26,77,0,0,True,0.51,0.51
+10,1,102,51,102,0,0,True,0.66,0.66
+10,2,102,51,102,0,0,True,0.68,0.68
+10,3,102,51,102,0,0,True,0.59,0.60

@@ -62,6 +62,26 @@ services:
       target: pruebas
     profiles: [pruebas]
 
+  # Experimento de pérdidas ante una caída (CD-006, D29). Con el central y los dos
+  # servidores ya arriba:
+  #   docker compose -f docker-compose.local.yml run --rm --build experimento
+  # Apaga y prende servidor-a por el socket de Docker; los datos quedan en
+  # experimento/resultados/.
+  experimento:
+    build: ./experimento
+    profiles: [experimento]
+    environment:
+      URL_A: http://servidor-a:8000
+      URL_B: http://servidor-b:8000
+      SERVICIO_CAIDO: servidor-a
+      PROYECTO: chat-local
+      DURACIONES: ${DURACIONES:-2,5,10}
+      REPETICIONES: ${REPETICIONES:-3}
+      TASA: ${TASA:-5}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./experimento/resultados:/experimento/resultados
+
 volumes:
   datos-central:
   datos-a:

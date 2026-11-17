@@ -8,7 +8,7 @@
 | Especificación | [v1.0.0 del central](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion), publicada el 2026-11-15 (cierra P07) |
 | Estado | **Ajustado a la especificación v1.0.0 (D27, D28).** Borrador de Manuel (PR #40); el PM pidió el código en el mismo PR el 2026-11-16, así que aprobar el PR aprueba este canvas (D15) |
 | Revisado por | Pendiente: visto bueno del PM y del equipo en el PR |
-| Issues | #15, #16, #17 y #18. #19 (experimento) sigue esperando P06 |
+| Issues | #15, #16, #17 y #18. #19 (experimento) pasa a [CD-006](CD-006-202611171300-[Feat]-experimento-perdidas.md): D29 cierra P06 (nota del 2026-11-17) |
 
 La primera versión de este canvas la escribió Manuel con el protocolo provisional. Con la
 especificación publicada se ajustaron R, E, A, S, O y las salvaguardas 6 y 7; la parte del
