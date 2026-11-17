@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS estado (
     valor  INTEGER NOT NULL
 );
 INSERT OR IGNORE INTO estado (clave, valor) VALUES ('reloj', 0);
+-- Último `seq` del central procesado en pull (D27): el cursor de GET /history?after_seq=.
+INSERT OR IGNORE INTO estado (clave, valor) VALUES ('cursor_seq', 0);
 
 -- Mensajes nuestros que todavía no llegan al central (análisis, sección 7).
 CREATE TABLE IF NOT EXISTS pendientes (
@@ -89,6 +91,18 @@ class Transaccion:
         if valor < actual:
             raise ValueError(f"El reloj de Lamport no puede retroceder: {actual} → {valor}")
         self._con.execute("UPDATE estado SET valor = ? WHERE clave = 'reloj'", (valor,))
+
+    def leer_cursor_seq(self) -> int:
+        return self._con.execute(
+            "SELECT valor FROM estado WHERE clave = 'cursor_seq'"
+        ).fetchone()[0]
+
+    def avanzar_cursor_seq(self, seq: int) -> None:
+        """Mueve el cursor del pull a `seq` si es mayor; nunca lo hace retroceder (D27)."""
+        self._con.execute(
+            "UPDATE estado SET valor = ? WHERE clave = 'cursor_seq' AND valor < ?",
+            (seq, seq),
+        )
 
     def guardar_mensaje_si_no_existe(self, mensaje: Mensaje) -> bool:
         """Devuelve True si el mensaje era nuevo y False si su `id` ya estaba."""
@@ -233,6 +247,10 @@ class Almacen:
 
     def leer_reloj(self) -> int:
         return self._uno("SELECT valor FROM estado WHERE clave = 'reloj'")[0]
+
+    def leer_cursor_seq(self) -> int:
+        """El último `seq` del central procesado en pull; 0 si todavía no hay (D27)."""
+        return self._uno("SELECT valor FROM estado WHERE clave = 'cursor_seq'")[0]
 
     def contar_mensajes(self) -> int:
         return self._uno("SELECT COUNT(*) FROM mensajes")[0]

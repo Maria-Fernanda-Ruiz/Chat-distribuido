@@ -15,4 +15,5 @@ router = APIRouter(tags=["Federación (la llama el central)"])
 
 @router.get("/fed/health")
 def salud(ctx: ContextoDep) -> dict[str, object]:
-    return {"server": ctx.config.grupo}
+    """`{"server", "lamport"}`, como pide la especificación (#15). Solo lee el reloj."""
+    return {"server": ctx.config.grupo, "lamport": ctx.almacen.leer_reloj()}

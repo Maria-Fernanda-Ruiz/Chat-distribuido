@@ -1,11 +1,13 @@
-# Pruebas locales; no se entrega. Dos servidores del grupo en la misma máquina
-# (recomendación de la sección 10 del enunciado) y el corredor de pruebas.
+# Pruebas locales; no se entrega. El central oficial y dos servidores del grupo en la misma
+# máquina (recomendación de la sección 10 del enunciado), y el corredor de pruebas.
 #
-#   docker compose -f docker-compose.local.yml up --build                    # gNa en :8001, gNb en :8002
+#   docker compose -f docker-compose.local.yml up --build                    # central en :9000, gNa en :8001, gNb en :8002
+#   docker compose -f docker-compose.local.yml stop central                  # simular una caída del central
 #   docker compose -f docker-compose.local.yml run --rm --build pruebas      # pytest
 #
-# URL_CENTRAL apunta a "central", que agrega el central simulado (#7). Mientras no
-# exista, los servidores arrancan igual: nadie llama al central en la etapa 1.
+# El central es el mismo que corre en https://dsp.cshire.io, construido desde su
+# repositorio público (D28). Su panel, en http://localhost:9000/, muestra los servidores
+# registrados y la sala #general.
 name: chat-local
 
 x-servidor: &servidor
@@ -13,14 +15,30 @@ x-servidor: &servidor
     context: ./servidor
     target: servidor
   stop_grace_period: 5s
+  depends_on:
+    - central
 
 services:
+  central:
+    build:
+      context: https://github.com/javierchacon262/central-server-dsp.git#main:servidor
+      target: servidor
+    environment:
+      # En local los servidores tienen direcciones privadas; sin esto el central no
+      # acepta registros en push.
+      PERMITIR_URL_PRIVADAS: "true"
+    ports:
+      - "9000:9000"
+    volumes:
+      - datos-central:/datos
+
   servidor-a:
     <<: *servidor
     environment:
       GRUPO: ${GRUPO:-gN}a
       URL_PUBLICA: http://servidor-a:8000
       URL_CENTRAL: http://central:9000
+      MODO_RECEPCION: ${MODO_RECEPCION:-pull}
     ports:
       - "8001:8000"
     volumes:
@@ -32,6 +50,7 @@ services:
       GRUPO: ${GRUPO:-gN}b
       URL_PUBLICA: http://servidor-b:8000
       URL_CENTRAL: http://central:9000
+      MODO_RECEPCION: ${MODO_RECEPCION:-pull}
     ports:
       - "8002:8000"
     volumes:
@@ -44,5 +63,6 @@ services:
     profiles: [pruebas]
 
 volumes:
+  datos-central:
   datos-a:
   datos-b:

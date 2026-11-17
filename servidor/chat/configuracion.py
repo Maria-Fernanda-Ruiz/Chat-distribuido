@@ -19,6 +19,8 @@ from urllib.parse import urlsplit
 PATRON_GRUPO = re.compile(r"^[A-Za-z0-9_-]{1,20}$")
 VALORES_VERDADEROS = {"1", "true", "si", "sí", "yes"}
 VALORES_FALSOS = {"0", "false", "no"}
+# D27: en pull consultamos al central; en push el central nos llama a /fed/messages.
+MODOS_RECEPCION = ("pull", "push")
 
 
 class ErrorDeConfiguracion(Exception):
@@ -54,15 +56,21 @@ class Configuracion:
     ruta_bd: str = "/datos/chat.db"
     puerto: int = 8000
     log_accesos: bool = False
+    modo_recepcion: str = "pull"
+    pull_intervalo_s: float = 1.5
 
 
 def cargar_configuracion(entorno: Mapping[str, str]) -> Configuracion:
     """Lee y valida todas las variables. Si algo falla, informa todos los problemas juntos."""
     lector = _Lector(entorno)
+    modo = lector.opcion("MODO_RECEPCION", MODOS_RECEPCION, "pull")
     config = Configuracion(
         grupo=lector.grupo("GRUPO"),
+        # Solo en push el central nos llama, así que solo ahí hace falta la URL (D27).
         url_publica=lector.url(
-            "URL_PUBLICA", "URL con la que el central llega a este servidor"
+            "URL_PUBLICA",
+            "URL con la que el central llega a este servidor; obligatoria con MODO_RECEPCION=push",
+            obligatoria=modo == "push",
         ),
         url_central=lector.url("URL_CENTRAL", "URL del servidor central del curso"),
         heartbeat_intervalo_s=lector.segundos("HEARTBEAT_INTERVALO_S", 5.0),
@@ -74,6 +82,8 @@ def cargar_configuracion(entorno: Mapping[str, str]) -> Configuracion:
         ruta_bd=lector.texto("RUTA_BD", "/datos/chat.db"),
         puerto=lector.entero("PUERTO", 8000, minimo=1, maximo=65535),
         log_accesos=lector.booleano("LOG_ACCESOS", False),
+        modo_recepcion=modo,
+        pull_intervalo_s=lector.segundos("PULL_INTERVALO_S", 1.5),
     )
     if config.backoff_max_s < config.backoff_base_s:
         lector.problemas.append(
@@ -110,10 +120,11 @@ class _Lector:
             )
         return valor
 
-    def url(self, nombre: str, que_es: str) -> str:
+    def url(self, nombre: str, que_es: str, *, obligatoria: bool = True) -> str:
         valor = self._valor(nombre)
         if valor is None:
-            self.problemas.append(f"Falta {nombre}: {que_es}.")
+            if obligatoria:
+                self.problemas.append(f"Falta {nombre}: {que_es}.")
             return ""
         partes = urlsplit(valor)
         if partes.scheme not in ("http", "https") or not partes.netloc:
@@ -155,6 +166,17 @@ class _Lector:
             self.problemas.append(f"{nombre} debe ser {rango} (llegó {valor!r}).")
             return por_defecto
         return numero
+
+    def opcion(self, nombre: str, opciones: tuple[str, ...], por_defecto: str) -> str:
+        valor = self._valor(nombre)
+        if valor is None:
+            return por_defecto
+        if valor.lower() in opciones:
+            return valor.lower()
+        self.problemas.append(
+            f"{nombre} debe ser {' o '.join(opciones)} (llegó {valor!r})."
+        )
+        return por_defecto
 
     def booleano(self, nombre: str, por_defecto: bool) -> bool:
         valor = self._valor(nombre)

@@ -1,6 +1,6 @@
 # Servidor del grupo: lo que se entrega (requisito 1 del enunciado).
 #
-#   cp .env.example .env    # y llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+#   cp .env.example .env    # y llenar GRUPO y URL_CENTRAL (URL_PUBLICA solo en push)
 #   docker compose up --build
 #
 # Las variables vacías toman el valor por defecto del servidor (D10). Las pruebas y las
@@ -14,6 +14,8 @@ services:
       GRUPO: ${GRUPO:-}
       URL_PUBLICA: ${URL_PUBLICA:-}
       URL_CENTRAL: ${URL_CENTRAL:-}
+      MODO_RECEPCION: ${MODO_RECEPCION:-}
+      PULL_INTERVALO_S: ${PULL_INTERVALO_S:-}
       HEARTBEAT_INTERVALO_S: ${HEARTBEAT_INTERVALO_S:-}
       HEARTBEAT_FALLOS_PARA_CAIDO: ${HEARTBEAT_FALLOS_PARA_CAIDO:-}
       REGISTRO_INTERVALO_S: ${REGISTRO_INTERVALO_S:-}

@@ -8,10 +8,10 @@ from chat import principal
 from chat.principal import crear_app
 
 
-def test_fed_health_responde_con_el_nombre_del_servidor(cliente):
+def test_fed_health_responde_con_el_nombre_del_servidor_y_el_reloj(cliente):
     respuesta = cliente.get("/fed/health")
     assert respuesta.status_code == 200
-    assert respuesta.json() == {"server": "gprueba"}
+    assert respuesta.json() == {"server": "gprueba", "lamport": 0}
 
 
 def test_al_arrancar_el_central_se_supone_vivo(cliente):

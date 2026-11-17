@@ -22,6 +22,7 @@ from chat.configuracion import Configuracion
 from chat.contexto import Contexto
 from chat.eventos import Evento, registrar
 from chat.federacion import envio, rutas as rutas_federacion
+from chat.presencia import heartbeat, historial, registro
 from chat.presencia import rutas as rutas_presencia
 
 TareaDeFondo = Callable[[Contexto], Awaitable[None]]
@@ -29,10 +30,13 @@ TareaDeFondo = Callable[[Contexto], Awaitable[None]]
 # Cada área agrega aquí su tarea cuando la implementa. Una tarea es una función
 # `async def tarea(ctx: Contexto) -> None` que normalmente corre en un ciclo hasta que la
 # cancelan al parar el servidor.
+# Las de recepción revisan MODO_RECEPCION al empezar y la que no corresponde termina
+# enseguida (D27).
 TAREAS_DE_FONDO: list[TareaDeFondo] = [
-    # registro.mantener_registro,        # presencia, #16
-    # historial.recuperar_al_arrancar,   # presencia, #18
-    # heartbeat.vigilar_central,         # presencia, #17
+    registro.mantener_registro,          # presencia, #16
+    historial.recibir_por_pull,          # presencia, D27 (modo pull)
+    historial.recuperar_al_arrancar,     # presencia, #18 (modo push)
+    heartbeat.vigilar_central,           # presencia, #17
     envio.enviar_pendientes,             # federación, #14
 ]
 
@@ -68,6 +72,7 @@ def crear_app(
                 mensajes=almacen.contar_mensajes(),
                 pendientes=almacen.contar_pendientes(),
                 central=config.url_central,
+                modo=config.modo_recepcion,
             )
             corriendo = [
                 asyncio.create_task(_vigilar(tarea, contexto), name=tarea.__name__)
