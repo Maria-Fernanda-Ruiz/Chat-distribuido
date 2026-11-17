@@ -12,13 +12,14 @@ registrada en este README.
 
 ## Estado
 
-> **Fase actual: análisis, canvas de la estructura y código de la etapa 1 (pasos 3 a 5
-> de SPDD).** Está la [historia](requirements/) con HU1–HU12, el
-> [análisis](spdd/analysis/) del protocolo (provisional hasta que llegue la
-> especificación, P07) y el [canvas de la estructura](spdd/prompt/) y el de la API local (CD-003, en revisión). Hay 26 decisiones
-> tomadas y 5 pendientes. El trabajo está repartido en
+> **Fase actual: código de las áreas y conexión al central (pasos 5 y 6 de SPDD).** Está
+> la [historia](requirements/) con HU1–HU12, el [análisis](spdd/analysis/) del protocolo,
+> revisado contra la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion)
+> del central, y los [canvas](spdd/prompt/) de la estructura (CD-002), la API local
+> (CD-003), la federación (CD-004) y la presencia (CD-005). Hay 28 decisiones tomadas y
+> 2 pendientes. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
-> noviembre**. El código de la etapa 1 (#3–#6) está en PR.
+> noviembre**.
 
 ```mermaid
 flowchart LR
@@ -31,14 +32,11 @@ flowchart LR
     G -.->|"refactor sin cambio:<br/>se sincroniza el canvas"| CV
     classDef hecho fill:#2e7d32,stroke:#1b5e20,color:#ffffff
     classDef actual fill:#f9a825,stroke:#f57f17,color:#000000
-    class H actual
-    class C actual
-    class AN actual
-    class CV actual
+    class H,C,AN,CV hecho
+    class G,T actual
 ```
 
-Verde: terminado. Amarillo: en curso. La historia está en borrador hasta que el equipo
-la revise, y el análisis es provisional hasta que llegue la especificación (P07).
+Verde: terminado. Amarillo: en curso.
 
 ## Integrantes y roles
 
@@ -119,7 +117,7 @@ el prefijo `CD` (chat distribuido).
 
 ## Log de decisiones
 
-La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-11-14) es la de la API local y el cliente web, con su [canvas](spdd/prompt/) (CD-003).
+La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-11-14) es la de la API local y el cliente web, con su [canvas](spdd/prompt/) (CD-003). La ronda 5 (2026-11-16) ajusta presencia y recepción a la especificación publicada (CD-005).
 
 | ID | Decisión | Alternativas descartadas | Por qué | REASONS | Ronda |
 |---|---|---|---|---|---|
@@ -138,7 +136,7 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D13 | **Todo en español:** código, API propia, commits y documentos. Los campos y rutas del protocolo con el central quedan como los define la especificación. Cierra P13 | Todo en inglés | El equipo y el curso trabajan en español; el protocolo no se negocia | N | 2 |
 | D14 | **Flujo de Git:** una rama y un PR por cosa terminada (prefijos `docs/`, `feat/`, `fix/`), Conventional Commits y `Closes #N`; nunca push directo a `main`. Cierra P14 | Trabajar directo en `main` | Cada PR se revisa como una sola cosa y el historial muestra quién hizo qué, que también se evalúa | N | 2 |
 | D15 | **El PM aprueba el canvas** para que el código pueda empezar; el equipo lo revisa en el PR y, si pide un cambio, primero se corrige el canvas. Ajusta la regla 1 de `AGENTS.md` | Esperar a que los cuatro lo revisen antes de programar | La etapa 1 vence el 15 de noviembre y las demás áreas no pueden programar sin la estructura | N | 2 |
-| D16 | **`since` al recuperar historial:** al arrancar se pide `since=0` y la deduplicación descarta lo repetido; al volver el central se pide el último `lamport` visto. Cierra P15, que surgió en el análisis | Siempre el último visto; último visto menos un margen | Lamport no ordena los mensajes concurrentes: un grupo que acaba de arrancar puede mandar una marca menor que la nuestra, y con «último visto» lo perderíamos. Es justo lo que mide el experimento ([análisis, sección 6](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#6-qué-since-pedir-al-recuperar-historial-d16)) | A | 2 |
+| D16 | **`since` al recuperar historial:** al arrancar se pide `since=0` y la deduplicación descarta lo repetido; al volver el central se pide el último `lamport` visto. Cierra P15, que surgió en el análisis | Siempre el último visto; último visto menos un margen | Lamport no ordena los mensajes concurrentes: un grupo que acaba de arrancar puede mandar una marca menor que la nuestra, y con «último visto» lo perderíamos. Es justo lo que mide el experimento ([análisis, sección 6](spdd/analysis/CD-001-202611141940-[Analysis]-protocolo-y-parametros.md#6-qué-since-pedir-al-recuperar-historial-d16)). *Ajustada por D27:* rige solo en push; en pull el cursor `seq` la reemplaza | A | 2 |
 | D17 | **Rutas de la API local bajo `/api`:** `/api/usuarios` y `/api/mensajes` | `/v1/…`; rutas sin prefijo | Quedan separadas de las rutas `/fed/…` que usa el central y del cliente en `/` | S | 3 |
 | D18 | **Crear usuario: 409 si el nombre ya existe y 422 si no cumple D12**, con `{"detail": "…"}` en español | 400 para los dos casos | Son los códigos estándar de HTTP y el cliente puede mostrar un mensaje distinto para cada caso | R | 3 |
 | D19 | **El cliente pide lo nuevo por `lamport`** (`GET /api/mensajes?desde_lamport=N`), como dice [#22](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/22). Un mensaje concurrente que llega tarde con una marca menor o igual no aparece hasta recargar | Por `secuencia` (orden de llegada); pedir siempre todo | Decisión a propósito: la idea es **evidenciar** el comportamiento erróneo probable de un sistema distribuido (Lamport no ordena los concurrentes) y mostrarlo como hallazgo y caso de mejora en la sesión y el póster. La mejora, pedir por `secuencia`, queda escrita en el canvas | A | 3 |
@@ -149,6 +147,8 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D24 | **`tick(tx)` y `recibir(valor, tx)` reutilizan la transacción SQLite recibida.** Si no reciben una transacción, pueden abrir una propia mediante `Almacen`. Cierra P16 | Abrir siempre una transacción propia, incluso cuando ya existe una abierta | Evita transacciones anidadas y permite que el mensaje y el reloj compartan la misma confirmación o rollback | S | 4 |
 | D25 | **En el cliente web, el usuario se elige o se crea en la misma pantalla del chat:** arriba, una lista con los usuarios del grupo y un campo para crear uno nuevo | Una pantalla de entrada aparte | Es lo más simple y lo más rápido en la demo, con menos código que explicar | S | 4 |
 | D26 | **Cada mensaje del cliente muestra su número de Lamport junto a la hora**, por ejemplo `#12 · 3:15 p. m.` | Mostrar solo la hora | En la demo y en el póster se ve por qué los mensajes salen en ese orden, y se puede mostrar la limitación de D19 | S | 4 |
+| D27 | **Recepción en pull, según la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion) del central** (`https://dsp.cshire.io`). `MODO_RECEPCION` es `pull` por defecto o `push`. En pull, el servidor pide `GET /history?after_seq=<cursor>&server=<GRUPO>` cada `PULL_INTERVALO_S` (1,5 s) y guarda el cursor `seq` en SQLite, en la misma transacción que el mensaje; `URL_PUBLICA` solo es obligatoria en push. Todo mensaje recibido, por `/fed/messages`, por pull o por historial, pasa por la misma recepción de `federacion.reloj` ([CD-005](spdd/prompt/CD-005-202611161200-[Feat]-presencia-y-recuperacion.md)). Cierra P07, P08 y P12; ajusta D16 | Push con un túnel (cloudflared o ngrok) como modo principal; seguir con el supuesto S9 | Los portátiles están detrás de NAT y el central no puede llamarlos sin túnel; pull solo necesita salida a internet. El cursor `seq` no pierde los mensajes concurrentes que llegan tarde con una marca menor, el riesgo que D16 dejaba abierto | E, A, O | 5 |
+| D28 | **El central simulado de #7 es el central oficial**, construido desde su repositorio público en `docker-compose.local.yml` como servicio `central` (panel en `http://localhost:9000/`) | Escribir un central falso propio | Es el mismo código que corre en `dsp.cshire.io`, así que lo que pasa en local pasa en la sesión, y no hay un central propio que mantener. Una caída se simula con `docker compose -f docker-compose.local.yml stop central` | S | 5 |
 
 ## Decisiones pendientes
 
@@ -160,9 +160,6 @@ pendiente.
 |---|---|---|---|
 | P01 | ¿Qué número de grupo somos (`gN`)? | Preguntar al profesor o revisar la lista del curso | Configuración, póster |
 | P06 | ¿Qué experimento? | Pérdidas ante una caída, porque mide lo mismo que muestra la demo (al menos una vez, deduplicación y recuperación). Lo cierra Manuel con el PM en [#19](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/19) | HU11, póster |
-| P07 | ¿Dónde están la especificación OpenAPI, los ejemplos JSON y el script de conformidad? | Al 2026-11-14 no se han publicado. Javier pregunta al profesor y en el foro ([#1](https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido/issues/1)); mientras tanto, los issues del protocolo llevan la etiqueta `protocolo-provisional` | Análisis (paso 3) y todo el protocolo |
-| P08 | ¿Qué es el «modo alternativo» si el central no puede llamarnos? | Leerlo en la especificación cuando llegue (P07) | HU12 |
-| P12 | ¿Cómo será alcanzable nuestra URL pública por el central (red de la sala, túnel)? | Depende de la red de la sesión y del modo alternativo (P08) | HU1, HU3, HU12 |
 
 ## Tareas y responsables
 
@@ -188,7 +185,7 @@ Solo hace falta Docker con Compose. Todo corre en contenedores (regla 8 de
 [`AGENTS.md`](AGENTS.md)).
 
 ```bash
-cp .env.example .env          # llenar GRUPO, URL_PUBLICA y URL_CENTRAL
+cp .env.example .env          # llenar GRUPO y URL_CENTRAL (URL_PUBLICA solo en push)
 docker compose up --build     # servidor en http://localhost:8000
 curl localhost:8000/fed/health
 ```
@@ -202,9 +199,33 @@ viven en el volumen `datos` y sobreviven a `docker compose restart`. `docker com
 Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
 
 ```bash
-docker compose -f docker-compose.local.yml up --build              # gNa en :8001 y gNb en :8002
+docker compose -f docker-compose.local.yml up --build              # central en :9000, gNa en :8001 y gNb en :8002
 docker compose -f docker-compose.local.yml run --rm --build pruebas # todas las pruebas (pytest)
 ```
+
+El archivo local levanta el central oficial (D28) y dos servidores del grupo en pull
+contra él. El panel del central, en <http://localhost:9000/>, muestra los dos servidores y
+la sala `#general`. Para simular una caída del central:
+`docker compose -f docker-compose.local.yml stop central` (y `start central` para que
+vuelva).
+
+**Modo de recepción (D27).** Por defecto el servidor recibe en **pull**: consulta al
+central cada 1,5 s y no necesita una URL pública, así que funciona en un portátil detrás
+de NAT. Con `MODO_RECEPCION=push` el central llama a `POST /fed/messages`; entonces
+`URL_PUBLICA` es obligatoria y tiene que ser alcanzable desde internet, por ejemplo con
+un túnel de cloudflared.
+
+**Script de conformidad (#8).** La salida de la última corrida está en
+[`entregables/conformidad.txt`](entregables/conformidad.txt): 9 de 9 casos, contra `gNa`
+en local, el 2026-11-16. Para repetirlo con el servidor levantado en `:8000`:
+
+```bash
+docker build -t conformidad-dsp "https://github.com/javierchacon262/central-server-dsp.git#main:conformidad"
+docker run --rm --network host conformidad-dsp http://localhost:8000 > entregables/conformidad.txt
+```
+
+En Windows y macOS se quita `--network host` y se usa `http://host.docker.internal:8000`.
+La corrida que se entrega se repite con el nombre real del grupo cuando se cierre P01.
 
 ## Código
 
@@ -259,8 +280,8 @@ Las instrucciones para cualquier persona o agente están en [`AGENTS.md`](AGENTS
 Cada integrante toma sus issues en el orden de los milestones. Antes de programar su
 parte, cada área escribe su canvas sobre los contratos de la
 [estructura](spdd/prompt/CD-002-202611141940-[Feat]-estructura.md) y lo aprueba el PM
-(D15). Las preguntas nuevas se agregan como pendientes. Lo más urgente sigue siendo
-conseguir la especificación (P07), que manda sobre todo lo provisional.
+(D15). Las preguntas nuevas se agregan como pendientes. La especificación del central ya está
+publicada (D27) y manda sobre el resumen del enunciado.
 
 ## Fuentes
 

@@ -4,9 +4,9 @@
 |---|---|
 | ID | CD-001 (análisis de la historia [CD-001](../../requirements/CD-001-202611132125-[Story]-chat-distribuido.md)) |
 | Tipo | Análisis (paso 3 de SPDD) |
-| Estado | **Provisional**: sale del resumen de la sección 4 del enunciado, porque la especificación OpenAPI todavía no está publicada ([P07](../../README.md#decisiones-pendientes)) |
+| Estado | **Revisado contra la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion)** del central el 2026-11-16 (D27). El resultado de cada supuesto está en la sección 11 |
 | Fecha | 2026-11-14 |
-| Decisiones que usa | D05, D06, D10–D16 |
+| Decisiones que usa | D05, D06, D10–D16, D27 |
 | Lo usan | El canvas de la estructura [CD-002](../prompt/CD-002-202611141940-[Feat]-estructura.md) y los canvas de cada área |
 
 Este documento fija **qué hace el servidor en cada caso** antes de escribir código. Lo
@@ -46,7 +46,8 @@ se puede deduplicar ni ordenar: se responde `422` (S2) y queda en el log.
 |---|---|---|---|---|
 | `POST /register` con `{"server", "url"}` | Al arrancar, cada `REGISTRO_INTERVALO_S` y al volver el central | `REGISTRADO` en el log | `RECHAZADO_4XX`; no se reintenta, pero la renovación periódica sigue y vuelve a dejarlo en el log | Se intenta de nuevo en la siguiente renovación |
 | `POST /messages` con el mensaje | Hay pendientes y el central no está marcado caído | `ENVIADO`; se quita de pendientes | `RECHAZADO_4XX`; se quita de pendientes **sin reintentar** | `REINTENTO`; se reprograma con backoff (sección 7), **mismo `id`** |
-| `GET /history?since={L}` | Al arrancar (`since=0`) y al volver el central (`since` = último visto), D16 | Cada mensaje entra por la misma recepción de la sección 4; al final `HISTORIAL_RECUPERADO` | `RECHAZADO_4XX` | Se reintenta con backoff hasta que funcione |
+| `GET /history?after_seq={cursor}&server={GRUPO}` | En pull (D27), cada `PULL_INTERVALO_S`; una página llena (1000) se sigue pidiendo de inmediato | Cada mensaje entra por la misma recepción de la sección 4 y el cursor avanza en la misma transacción | `RECHAZADO_4XX` | Se intenta de nuevo en el siguiente ciclo |
+| `GET /history?since={L}` | Solo en push: al arrancar (`since=0`) y al volver el central (`since` = último visto), D16 | Cada mensaje entra por la misma recepción de la sección 4; al final `HISTORIAL_RECUPERADO` | `RECHAZADO_4XX` | Se reintenta con backoff hasta que funcione |
 | `GET /health` | Cada `HEARTBEAT_INTERVALO_S` | El central está vivo | Cuenta como fallo | Cuenta como fallo |
 
 Cada llamada usa un timeout de `HTTP_TIMEOUT_S`. Un `3xx` se trata como `4xx`: no se
@@ -189,8 +190,10 @@ Todos son variables de entorno. Si una viene vacía se usa el valor por defecto.
 | Variable | Por defecto | Qué controla | La usa |
 |---|---|---|---|
 | `GRUPO` | **obligatoria** | Nombre del servidor en el central (`gN`, P01) | todas |
-| `URL_PUBLICA` | **obligatoria** | URL con la que el central nos llama (P12) | registro |
-| `URL_CENTRAL` | **obligatoria** | URL del central (P07) | federación, presencia |
+| `URL_PUBLICA` | obligatoria **solo en push** | URL con la que el central nos llama; en pull, si se da, se informa en el registro (D27) | registro |
+| `MODO_RECEPCION` | `pull` | `pull`: consultamos al central; `push`: el central nos llama (D27) | presencia |
+| `PULL_INTERVALO_S` | 1,5 | Cada cuánto se consulta `GET /history?after_seq=` en pull | presencia |
+| `URL_CENTRAL` | **obligatoria** | URL del central; el del curso es `https://dsp.cshire.io` | federación, presencia |
 | `HEARTBEAT_INTERVALO_S` | 5 | Cada cuánto se consulta `GET /health` | presencia |
 | `HEARTBEAT_FALLOS_PARA_CAIDO` | 3 | Fallos seguidos para marcar caído | presencia |
 | `REGISTRO_INTERVALO_S` | 30 | Cada cuánto se renueva el registro | presencia |
@@ -221,12 +224,12 @@ experimento:
 | `ENVIADO` | El central respondió `2xx` a `POST /messages` | `intento` |
 | `REINTENTO` | `5xx`, timeout o sin conexión; se reprograma | `intento`, `espera_s`, `causa` |
 | `RECHAZADO_4XX` | El central respondió `4xx` | `estado`, `ruta` |
-| `RECIBIDO` | Llegó un mensaje nuevo y se guardó | `via` (`fed` o `historial`), `reloj` |
+| `RECIBIDO` | Llegó un mensaje nuevo y se guardó | `via` (`fed`, `pull` o `historial`), `reloj` |
 | `DUPLICADO_DESCARTADO` | Llegó un `id` que ya teníamos | `via` |
 | `REGISTRADO` | El central aceptó el registro | `url` |
 | `CENTRAL_CAIDO` | F fallos seguidos de `GET /health` | `fallos` |
 | `CENTRAL_VOLVIO` | Primer `2xx` después de estar caído | `caido_s` |
-| `HISTORIAL_RECUPERADO` | Terminó una recuperación | `since`, `nuevos`, `duplicados` |
+| `HISTORIAL_RECUPERADO` | Terminó una recuperación: en push la de `since`; en pull la primera consulta completa después de arrancar o de volver el central | `since` o `after_seq`, `nuevos`, `duplicados` |
 
 El cuerpo del mensaje no va al log: no hace falta para depurar ni para medir.
 
@@ -244,6 +247,20 @@ El cuerpo del mensaje no va al log: no hace falta para depurar ni para medir.
 | S8 | El registro no expira antes de 30 s; si la especificación da un TTL, la renovación va a la mitad | `REGISTRO_INTERVALO_S` (D10) |
 | S9 | El «modo alternativo» (P08) no cambia los endpoints, solo quién inicia la conexión | Presencia y federación |
 
+### Resultado de la revisión contra la especificación v1.0.0 (2026-11-16)
+
+| ID | Resultado | Qué cambió |
+|---|---|---|
+| S1 | Se cumple. En `/history` y en push cada mensaje trae además `seq` | Nada en `Mensaje`; el pull lee `seq` aparte |
+| S2 | El central responde `400` a lo inválido. Para `/fed/messages` la especificación acepta cualquier `4xx` como rechazo | Se mantiene `422` |
+| S3 | Se cumple: `200` con `{"server", "url", "mode", "new"}` | El registro lee `new` solo para el log |
+| S4 | Se cumple: lista JSON | — |
+| S5 | **Falla:** `since` es inclusivo (`lamport ≥ since`) | Nada: los repetidos se descartan por `id` |
+| S6 | Se cumple: `{"server", "lamport"}` | `/fed/health` agrega `lamport` (#15) |
+| S7 | Se cumple: el central no lee el cuerpo | — |
+| S8 | Se cumple: el registro no vence; se recomienda renovarlo cada 30 s | — |
+| S9 | **Falla:** el modo alternativo es **pull**: el grupo consulta `GET /history?after_seq=` y el central no lo llama | D27: pull por defecto; push con `MODO_RECEPCION=push` |
+
 ## 12. Arranque y parada
 
 **Arranque:**
@@ -253,7 +270,7 @@ El cuerpo del mensaje no va al log: no hace falta para depurar ni para medir.
 3. Registrar `ARRANQUE` con el reloj y los pendientes que quedaron guardados.
 4. Lanzar las tareas de fondo, que corren a la vez y ninguna bloquea el arranque:
    - registro inmediato y renovación periódica;
-   - recuperación con `since=0`;
+   - en pull, la consulta por cursor (D27); en push, la recuperación con `since=0`;
    - heartbeat;
    - envío de pendientes.
 5. La API empieza a responder, incluido `/fed/health`.
