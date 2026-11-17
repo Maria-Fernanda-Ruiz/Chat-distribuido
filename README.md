@@ -274,8 +274,9 @@ de NAT. Con `MODO_RECEPCION=push` el central llama a `POST /fed/messages`; enton
 un túnel de cloudflared.
 
 **Script de conformidad (#8).** La salida de la última corrida está en
-[`entregables/conformidad.txt`](entregables/conformidad.txt): 9 de 9 casos, contra `gNa`
-en local, el 2026-11-16. Para repetirlo con el servidor levantado en `:8000`:
+[`entregables/conformidad.txt`](entregables/conformidad.txt): 9 de 9 casos, el 2026-11-17,
+contra nuestro servidor conectado al central real con el nombre de prueba `g2`
+([bitácora](entregables/bitacora-interoperabilidad.md)). Para repetirlo con el servidor levantado en `:8000`:
 
 ```bash
 docker build -t conformidad-dsp "https://github.com/javierchacon262/central-server-dsp.git#main:conformidad"
