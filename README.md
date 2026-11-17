@@ -51,33 +51,62 @@ Grupo: **gN**, por confirmar ([P01](#decisiones-pendientes)). El reparto es la d
 [D03](#log-de-decisiones): cada integrante es dueño de un tramo del recorrido del mensaje
 y todos escriben código.
 
-## Qué vamos a construir
+## Arquitectura
 
-Arquitectura en estrella, según la sección 2 del enunciado. Nuestro servidor solo habla
-con el servidor central y con nuestro cliente; nunca con los otros grupos.
+Es una arquitectura en estrella, según la sección 2 del enunciado. Nuestro servidor solo
+habla con el servidor central y con nuestro cliente, nunca con los otros grupos. Todo el
+servidor es **un solo contenedor** con **un volumen** para SQLite (D06), conectado a la
+red por defecto que crea `docker compose`. Al central solo se sale hacia afuera, así que
+funciona detrás de NAT (pull, D27).
 
 ```mermaid
-flowchart LR
-    CL(["Nuestro cliente<br/>web mínima (D07)"]) -->|"API libre"| SV
-    subgraph DC["docker compose · grupo gN"]
-        SV["servidor del grupo<br/>FastAPI (D05)"] --> DB[("SQLite<br/>en volumen (D06)")]
+flowchart TB
+    NAV(["Navegador<br/>cliente web en /"])
+    subgraph EQ["docker compose"]
+        SV["<b>contenedor servidor</b><br/>Python 3.12 + FastAPI · puerto 8000<br/>api_local · federacion<br/>presencia · almacen"]
+        VOL[("<b>volumen datos</b><br/>SQLite /datos/chat.db<br/>mensajes · reloj de Lamport<br/>pendientes · cursor seq")]
+        SV <--> VOL
     end
-    SV -->|"POST /register · POST /messages<br/>GET /history?since= · GET /health"| CE["Servidor central<br/>(profesor)"]
-    CE -->|"POST /fed/messages<br/>GET /fed/health"| SV
-    CE <--> OT["servidores de<br/>los otros grupos"]
+    CE["<b>Servidor central</b><br/>dsp.cshire.io"]
+    OT["servidores de<br/>los otros grupos"]
+    NAV -->|"HTTP :8000"| SV
+    SV -->|"POST /register · POST /messages · GET /health<br/>GET /history?after_seq= cada 1,5 s"| CE
+    CE -.->|"solo en push: POST /fed/messages"| SV
+    CE <--> OT
 ```
 
-Endpoints del protocolo (sección 4 del enunciado; manda la especificación OpenAPI,
-[P07](#decisiones-pendientes)):
+El mismo diagrama, como imagen para el póster:
+[`entregables/arquitectura.png`](entregables/arquitectura.png).
+
+Así viaja un mensaje: el cliente lo envía a `/api/mensajes`. El servidor sube el reloj,
+guarda el mensaje y lo deja en pendientes, todo en una sola transacción. Una tarea de
+fondo lo envía al central y lo reintenta con el mismo `id` hasta que el central lo
+acepta. Los otros grupos lo traen con su pull, y nuestro servidor trae los de ellos de la
+misma forma. Lo repetido se descarta por `id`, y el historial se ordena por
+`(lamport, origin, id)`.
+
+Rutas del protocolo, según la
+[especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion)
+del central:
 
 | Lado | Método y ruta | Qué hace |
 |---|---|---|
-| Central (lo llamamos) | `POST /register` | Registrar o renovar `{"server": "gN", "url": "http://…"}` |
-| Central (lo llamamos) | `POST /messages` | Entregar un mensaje de un usuario nuestro |
-| Central (lo llamamos) | `GET /history?since={lamport}` | Pedir lo posterior a una marca de Lamport |
-| Central (lo llamamos) | `GET /health` | Heartbeat del central |
-| Nuestro (nos llama) | `GET /fed/health` | Responde nombre del servidor y reloj de Lamport actual |
-| Nuestro (nos llama) | `POST /fed/messages` | Recibir un mensaje reenviado por el central |
+| Central (lo llamamos) | `POST /register` | Registrar o renovar `{"server": "gN", "mode": "pull"}`, más `url` en push. Al arrancar y cada 30 s |
+| Central (lo llamamos) | `POST /messages` | Entregar un mensaje de un usuario nuestro; responde `{"id", "seq", "duplicate"}` |
+| Central (lo llamamos) | `GET /history?after_seq={cursor}&server={GRUPO}` | Pull (D27): los mensajes nuevos desde el último `seq` visto, cada 1,5 s |
+| Central (lo llamamos) | `GET /history?since={lamport}` | Solo en push: recuperar el historial al arrancar y al volver el central (D16) |
+| Central (lo llamamos) | `GET /health` | Heartbeat del central, cada 5 s |
+| Nuestro (nos llaman) | `GET /fed/health` | Nombre del servidor y reloj de Lamport actual |
+| Nuestro (nos llaman) | `POST /fed/messages` | Solo en push: recibir un mensaje reenviado por el central |
+
+La API local, entre nuestro cliente y nuestro servidor (CD-003):
+
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /` | El cliente web |
+| `POST /api/usuarios` · `GET /api/usuarios` | Crear (`409` si ya existe, `422` si el nombre no es válido) y listar usuarios |
+| `POST /api/mensajes` | Escribir en `#general` (`404` si el usuario no existe, `422` si el texto no es válido) |
+| `GET /api/mensajes?desde_lamport=N` | Historial ordenado; con `desde_lamport`, solo lo nuevo |
 
 ## Metodología: SPDD
 
@@ -181,20 +210,48 @@ tanto, el resto del equipo revisa el análisis y el canvas ([#2](https://github.
 
 ## Cómo levantarlo
 
-Solo hace falta Docker con Compose. Todo corre en contenedores (regla 8 de
-[`AGENTS.md`](AGENTS.md)).
+Todo corre en contenedores (regla 8 de [`AGENTS.md`](AGENTS.md)). En un equipo limpio
+solo hacen falta **Git** y **Docker con Compose v2** (Docker Desktop en Windows y macOS,
+o Docker Engine con el plugin `compose` en Linux). No hay que instalar Python.
 
 ```bash
-cp .env.example .env          # llenar GRUPO y URL_CENTRAL (URL_PUBLICA solo en push)
+git clone https://github.com/Maria-Fernanda-Ruiz/Chat-distribuido.git
+cd Chat-distribuido
+cp .env.example .env          # escribir GRUPO; URL_CENTRAL ya viene con el central del curso
 docker compose up --build     # servidor en http://localhost:8000
-curl localhost:8000/fed/health
 ```
 
+Después:
+
+1. Abrir <http://localhost:8000/> en el navegador.
+2. Crear un usuario arriba y escribir en `#general`. Los mensajes de nuestro grupo salen
+   en azul y los de otros grupos en amarillo.
+3. Comprobar que responde: `curl localhost:8000/fed/health` devuelve
+   `{"server": "gN", "lamport": …}`.
+
 Si falta una variable obligatoria o un valor no es válido, el servidor no arranca y el
-log dice cuál es. Cada variable está explicada en [`.env.example`](.env.example). Las
-opcionales vacías toman los valores de [D10](#log-de-decisiones). Los datos (SQLite)
-viven en el volumen `datos` y sobreviven a `docker compose restart`. `docker compose down
--v` los borra.
+log dice cuál es. Los datos (SQLite) viven en el volumen `datos` y sobreviven a
+`docker compose restart` y a `docker compose down`. `docker compose down -v` los borra.
+
+### Variables de entorno
+
+Van en `.env`. Cada una está explicada en [`.env.example`](.env.example), y las
+opcionales vacías toman los valores de [D10](#log-de-decisiones).
+
+| Variable | Obligatoria | Por defecto | Para qué |
+|---|---|---|---|
+| `GRUPO` | Sí | — | Nombre del servidor en el central, por ejemplo `g3` |
+| `URL_CENTRAL` | Sí | `https://dsp.cshire.io` en `.env.example` | Dirección del servidor central |
+| `MODO_RECEPCION` | No | `pull` | `pull` consulta al central; `push` espera que el central nos llame (D27) |
+| `URL_PUBLICA` | Solo en push | — | URL con la que el central llega a nosotros desde internet |
+| `PULL_INTERVALO_S` | No | 1,5 | Cada cuánto se consulta el central en pull |
+| `PUERTO_HOST` | No | 8000 | Puerto del equipo donde se publica el servidor |
+| `HEARTBEAT_INTERVALO_S` | No | 5 | Cada cuánto se revisa `GET /health` del central |
+| `HEARTBEAT_FALLOS_PARA_CAIDO` | No | 3 | Fallos seguidos para dar el central por caído |
+| `REGISTRO_INTERVALO_S` | No | 30 | Cada cuánto se renueva el registro |
+| `BACKOFF_BASE_S` · `BACKOFF_MAX_S` | No | 1 · 30 | Primera espera de un reintento y espera máxima; se duplica en cada intento |
+| `HTTP_TIMEOUT_S` | No | 3 | Tiempo máximo de cada llamada al central |
+| `LOG_ACCESOS` | No | `false` | Una línea de log por cada petición HTTP recibida |
 
 Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
 
