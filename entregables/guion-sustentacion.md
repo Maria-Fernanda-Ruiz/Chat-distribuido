@@ -17,7 +17,7 @@ recuperación, y que cualquier integrante responda sobre cualquier parte.
 | 3:15–4:30 | Karen | «El reloj de Lamport ordena los mensajes sin depender de la hora de cada computador. Si el central no responde, el mensaje se reintenta con el mismo `id`, esperando cada vez más. Como cada mensaje tiene un `id` único, si llega dos veces se guarda una sola.» | Sección de método del póster |
 | 4:30–7:30 | Maria Fernanda o Karen | La demo (abajo) | Dos navegadores y la terminal |
 | 7:30–9:15 | Manuel | Experimento: pregunta, hipótesis, método y resultados (abajo) | Gráfica del póster |
-| 9:15–10:00 | Javier | Qué pasó en la sesión con los otros grupos, limitaciones y conclusión | Secciones de interoperabilidad y conclusiones |
+| 9:15–10:00 | Javier | «La sesión con los otros grupos se canceló, así que probamos con el central real: nos registramos, enviamos y, después de apagar el servidor, recuperó lo que se perdió en 0,6 segundos sin duplicados. La conformidad dio 9 de 9.» Luego limitaciones y conclusión | Secciones de interoperabilidad y conclusiones |
 
 ## Demo: caída y recuperación (3 minutos)
 
@@ -54,8 +54,9 @@ Abrir dos ventanas, una al lado de la otra: <http://localhost:8001> (gNa) y
    ```
    y el mensaje llega solo a gNb. Así se ven los reintentos.
 
-En la sesión del jueves, con el central real, es lo mismo con un solo servidor:
-`docker compose kill servidor` y `docker compose start servidor`.
+Con el central real es lo mismo, con un solo servidor: `docker compose kill servidor`
+y `docker compose start servidor` (así se hizo la prueba de la
+[bitácora](bitacora-interoperabilidad.md)).
 
 ## Experimento (lo que dice Manuel)
 
