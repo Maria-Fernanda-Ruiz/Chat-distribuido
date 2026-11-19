@@ -21,6 +21,8 @@ registrada en este README.
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**.
 
+**Video de la sustentación:** <https://youtu.be/AMTxsVyVFys> ([más detalles](entregables/video.md)).
+
 ```mermaid
 flowchart LR
     H["1 · Historia<br/>requirements/"] --> C["2 · Aclarar con el equipo<br/>log de decisiones"]
