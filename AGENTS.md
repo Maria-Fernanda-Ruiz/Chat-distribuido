@@ -83,8 +83,7 @@ presencia y la recepción en pull (D27) se ajustaron a ella.
 
 1. El PM ratifica D27 y D28 y se fusiona el PR de presencia y pull, que incluye el canvas
    CD-005 del #40.
-2. Cerrar P01 (número de grupo), poner `GRUPO` con ese nombre y repetir el script de
-   conformidad contra el servidor del grupo. Su salida reemplaza
+2. ~~Cerrar P01~~: D31 fija el grupo 2 (`GRUPO=g2`). La conformidad con `g2` ya está en
    [`entregables/conformidad.txt`](entregables/conformidad.txt) (#8).
 3. Probar contra el central en la nube, `https://dsp.cshire.io`, en pull y desde dos
    portátiles distintos.
