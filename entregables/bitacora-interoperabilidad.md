@@ -3,15 +3,14 @@
 **La sesión del jueves 19 de noviembre se canceló.** En su lugar, el 17 de noviembre de
 2026 conectamos nuestro servidor al central del curso (`https://dsp.cshire.io`) y
 repetimos las dos pruebas del enunciado (sección 7) con lo que había en ese momento.
-Usamos el nombre **g2** solo para la prueba, porque el número del grupo (P01) todavía no
-está confirmado.
+Usamos el nombre **g2**, que después quedó como el nombre del grupo (D31).
 
 ## Datos de la prueba
 
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-11-17, de 23:57 a 23:59 UTC |
-| Nombre del servidor | `g2` (de prueba) |
+| Nombre del servidor | `g2` |
 | Central | `https://dsp.cshire.io`, especificación 1.0.0 |
 | Modo de recepción | pull, cada 1,5 s (D27) |
 | Equipo y red | Portátil con Docker Desktop, detrás de NAT, sin URL pública |

@@ -1,7 +1,7 @@
 # Pruebas locales; no se entrega. El central oficial y dos servidores del grupo en la misma
 # máquina (recomendación de la sección 10 del enunciado), y el corredor de pruebas.
 #
-#   docker compose -f docker-compose.local.yml up --build                    # central en :9000, gNa en :8001, gNb en :8002
+#   docker compose -f docker-compose.local.yml up --build                    # central en :9000, g2a en :8001, g2b en :8002
 #   docker compose -f docker-compose.local.yml stop central                  # simular una caída del central
 #   docker compose -f docker-compose.local.yml run --rm --build pruebas      # pytest
 #
@@ -35,7 +35,7 @@ services:
   servidor-a:
     <<: *servidor
     environment:
-      GRUPO: ${GRUPO:-gN}a
+      GRUPO: ${GRUPO:-g2}a
       URL_PUBLICA: http://servidor-a:8000
       URL_CENTRAL: http://central:9000
       MODO_RECEPCION: ${MODO_RECEPCION:-pull}
@@ -47,7 +47,7 @@ services:
   servidor-b:
     <<: *servidor
     environment:
-      GRUPO: ${GRUPO:-gN}b
+      GRUPO: ${GRUPO:-g2}b
       URL_PUBLICA: http://servidor-b:8000
       URL_CENTRAL: http://central:9000
       MODO_RECEPCION: ${MODO_RECEPCION:-pull}
