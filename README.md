@@ -16,8 +16,8 @@ registrada en este README.
 > la [historia](requirements/) con HU1–HU12, el [análisis](spdd/analysis/) del protocolo,
 > revisado contra la [especificación v1.0.0](https://github.com/javierchacon262/central-server-dsp/tree/main/especificacion)
 > del central, y los [canvas](spdd/prompt/) de la estructura (CD-002), la API local
-> (CD-003), la federación (CD-004) y la presencia (CD-005). Hay 30 decisiones tomadas y
-> 1 pendiente. El trabajo está repartido en
+> (CD-003), la federación (CD-004) y la presencia (CD-005). Hay 31 decisiones tomadas y
+> ninguna pendiente. El trabajo está repartido en
 > [23 issues y 5 milestones](#tareas-y-responsables), con entrega el **jueves 19 de
 > noviembre**.
 
@@ -47,7 +47,7 @@ Verde: terminado. Amarillo: en curso.
 | Karen Angelica Sandoval Martinez | 2253637 | Federación de mensajes: envío, recepción, Lamport, deduplicación, reintentos |
 | Manuel Augusto Utrera Saltaren | Por definir | Presencia y recuperación: registro, heartbeat, historial; experimento |
 
-Grupo: **gN**, por confirmar ([P01](#decisiones-pendientes)). El reparto es la decisión
+Grupo: **2**, y el servidor se llama `g2` en el central ([D31](#log-de-decisiones)). El reparto es la decisión
 [D03](#log-de-decisiones): cada integrante es dueño de un tramo del recorrido del mensaje
 y todos escriben código.
 
@@ -180,6 +180,7 @@ La ronda 0 es lo que el equipo trajo decidido antes de iterar. La ronda 3 (2026-
 | D28 | **El central simulado de #7 es el central oficial**, construido desde su repositorio público en `docker-compose.local.yml` como servicio `central` (panel en `http://localhost:9000/`) | Escribir un central falso propio | Es el mismo código que corre en `dsp.cshire.io`, así que lo que pasa en local pasa en la sesión, y no hay un central propio que mantener. Una caída se simula con `docker compose -f docker-compose.local.yml stop central` | S | 5 |
 | D29 | **Experimento: pérdidas ante una caída**, variando la duración de la caída (2, 5 y 10 s, 3 repeticiones de cada una). Un script envía 5 mensajes por segundo desde `gNb` mientras apaga `gNa` con `docker kill` y la vuelve a prender; luego cuenta en `gNa` los mensajes perdidos y duplicados, y de paso el tiempo que tarda en ponerse al día ([CD-006](spdd/prompt/CD-006-202611171300-[Feat]-experimento-perdidas.md)). Cierra P06 | Latencia de extremo a extremo; tiempo de recuperación solo; no variar ningún parámetro; caída con `docker compose restart` | Mide lo mismo que muestra la demo (al menos una vez, deduplicación y recuperación). Variar la duración suma en la evaluación. `docker kill` apaga de golpe, sin cierre ordenado, así que es la prueba más dura para la base y el cursor | R, A, O | 6 |
 | D30 | **Póster vertical A1** con el estilo de la plantilla SystemsFest: sus logos, colores y letra, y las secciones que pide el enunciado. Va en [`entregables/poster.pptx`](entregables/poster.pptx) y en PDF, con las gráficas como gráficos de PowerPoint que se pueden editar. Ajusta D09 | Usar la plantilla tal cual, que es horizontal (48 × 36 pulgadas) | El enunciado pide formato vertical, pliego o A1 (sección 8), y el póster vale 15 % | N | 6 |
+| D31 | **Somos el grupo 2:** el servidor se llama `g2` en el central (`GRUPO=g2`), y el póster dice «Grupo 2». Las dos instancias locales quedan como `g2a` y `g2b`. Cierra P01 | Seguir con `gN` hasta que el profesor confirme el número | Con `g2` ya se hicieron el registro, la prueba de caída y la conformidad 9 de 9 contra el central real (2026-11-17), y la entrega es el 19 de noviembre | E, O | 6 |
 
 ## Decisiones pendientes
 
@@ -187,9 +188,7 @@ Se cierran con el equipo: cada pregunta se discute con sus opciones y, al decidi
 log como una D que dice «cierra P0X». No se genera código para una parte hasta cerrar su
 pendiente.
 
-| ID | Pregunta | Propuesta para discutir | Bloquea |
-|---|---|---|---|
-| P01 | ¿Qué número de grupo somos (`gN`)? | Preguntar al profesor o revisar la lista del curso | Configuración, póster |
+No queda ninguna: D31 cerró la última (P01).
 
 ## Tareas y responsables
 
@@ -257,7 +256,7 @@ opcionales vacías toman los valores de [D10](#log-de-decisiones).
 Para probar sin otros grupos hay un segundo archivo de compose, que no se entrega:
 
 ```bash
-docker compose -f docker-compose.local.yml up --build              # central en :9000, gNa en :8001 y gNb en :8002
+docker compose -f docker-compose.local.yml up --build              # central en :9000, g2a en :8001 y g2b en :8002
 docker compose -f docker-compose.local.yml run --rm --build pruebas # todas las pruebas (pytest)
 ```
 
@@ -275,7 +274,7 @@ un túnel de cloudflared.
 
 **Script de conformidad (#8).** La salida de la última corrida está en
 [`entregables/conformidad.txt`](entregables/conformidad.txt): 9 de 9 casos, el 2026-11-17,
-contra nuestro servidor conectado al central real con el nombre de prueba `g2`
+contra nuestro servidor conectado al central real con el nombre del grupo, `g2`
 ([bitácora](entregables/bitacora-interoperabilidad.md)). Para repetirlo con el servidor levantado en `:8000`:
 
 ```bash
@@ -284,7 +283,6 @@ docker run --rm --network host conformidad-dsp http://localhost:8000 > entregabl
 ```
 
 En Windows y macOS se quita `--network host` y se usa `http://host.docker.internal:8000`.
-La corrida que se entrega se repite con el nombre real del grupo cuando se cierre P01.
 
 ## Código
 
